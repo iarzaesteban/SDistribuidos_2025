@@ -24,10 +24,13 @@ jobs:
           sudo apt-get install -y docker-compose
 
       - name: Construir contenedores
+        working-directory: Hit1
         run: make build
 
       - name: Ejecutar pruebas
+        working-directory: Hit1
         run: make test
 
       - name: Detener y limpiar contenedores
+        working-directory: Hit1
         run: make down
