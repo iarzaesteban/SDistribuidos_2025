@@ -1,0 +1,33 @@
+name: CI/CD TCP Server
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v3
+
+      - name: Instalar Docker y Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      - name: Construir contenedores
+        run: make build
+
+      - name: Ejecutar pruebas
+        run: make test
+
+      - name: Detener y limpiar contenedores
+        run: make down
