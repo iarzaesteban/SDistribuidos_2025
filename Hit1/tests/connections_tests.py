@@ -21,4 +21,4 @@ def test_server_response_failed():
         client_socket.connect((SERVER_HOST, SERVER_PORT))
         client_socket.sendall("Hola Servidor B!".encode())
         response = client_socket.recv(1024).decode()
-        assert response == "Hola Cliente A, conexión establecida!"
+        assert response == "Hola Cliente Pedro, conexión establecida!"
