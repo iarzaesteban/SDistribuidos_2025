@@ -7,7 +7,7 @@ def start_client():
         client_socket.connect((SERVER_HOST, SERVER_PORT))
         client_socket.sendall("Hola Servidor B!".encode())
         response = client_socket.recv(1024).decode()
-        print(f"Respuesta del servidor: {response}")
+        print(f"Respuesta del servidor B: {response}")
 
 if __name__ == "__main__":
     start_client()
