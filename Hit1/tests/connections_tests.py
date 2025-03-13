@@ -1,16 +1,24 @@
 import socket
-import threading
+import time
 import pytest
-from server.server_tcp import start_server
 
-@pytest.fixture
-def server():
-    server_thread = threading.Thread(target=start_server, daemon=True)
-    server_thread.start()
+SERVER_HOST = 'servidor_tcp'
+SERVER_PORT = 12345
 
-def test_server_response(server):
+def test_server_response():
+    """Prueba que el servidor responde correctamente."""
+    time.sleep(2)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-        client_socket.connect(("127.0.0.1", 12345))
+        client_socket.connect((SERVER_HOST, SERVER_PORT))
         client_socket.sendall("Hola Servidor B!".encode())
         response = client_socket.recv(1024).decode()
         assert response == "Hola Cliente A, conexión establecida!"
+
+def test_server_response_failed():
+    """Prueba que el servidor NO responde correctamente."""
+    time.sleep(2)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+        client_socket.connect((SERVER_HOST, SERVER_PORT))
+        client_socket.sendall("Hola Servidor B!".encode())
+        response = client_socket.recv(1024).decode()
+        assert response == "Hola Cliente Pedro, conexión establecida!"

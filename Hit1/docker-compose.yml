@@ -18,3 +18,5 @@ services:
     container_name: test_tcp
     depends_on:
       - server
+    volumes:
+      - ./server:/app/server
