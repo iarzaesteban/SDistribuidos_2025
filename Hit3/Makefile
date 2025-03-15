@@ -7,7 +7,9 @@ run_client:
 	docker-compose run client
 
 test:
+	docker-compose up -d server
 	docker-compose run --rm tests
+	docker-compose down
 
 build:
 	docker-compose build

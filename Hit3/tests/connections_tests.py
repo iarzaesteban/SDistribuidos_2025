@@ -1,24 +1,27 @@
 import socket
 import time
+import threading
 import pytest
+import subprocess
 
-SERVER_HOST = 'servidor_tcp'
+SERVER_HOST = 'servidor_tcp_h3'
 SERVER_PORT = 12345
 
-def test_server_response():
-    """Prueba que el servidor responde correctamente."""
-    time.sleep(2)
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-        client_socket.connect((SERVER_HOST, SERVER_PORT))
-        client_socket.sendall("Hola Servidor B!".encode())
-        response = client_socket.recv(1024).decode()
-        assert response == "Hola Cliente A, conexión establecida!"
 
-def test_server_response_failed():
-    """Prueba que el servidor NO responde correctamente."""
-    time.sleep(2)
+def connect_and_send_message(client_name, message):
+    """Función auxiliar para conectarse al servidor y enviar mensajes."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         client_socket.connect((SERVER_HOST, SERVER_PORT))
-        client_socket.sendall("Hola Servidor B!".encode())
-        response = client_socket.recv(1024).decode()
-        assert response == "Hola Cliente A, conexión establecida!"
+        client_socket.sendall(client_name.encode())
+        time.sleep(0.2)
+        client_socket.sendall(message.encode())
+        return client_socket.recv(1024).decode()
+
+
+def test_connect_and_send_message():
+    """Test para enviar un mensaje al servidor y verificar la respuesta."""
+    client_name = "test_client"
+    message = "Hello Server"
+    response = connect_and_send_message(client_name, message)
+    assert response == f"Hola {client_name} desde el servidor!"
+    

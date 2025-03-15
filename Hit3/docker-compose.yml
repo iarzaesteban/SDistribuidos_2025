@@ -16,9 +16,7 @@ services:
     restart: always  # Asegura que el cliente siga ejecutándose
 
   tests:
-    build: ./tests
+    build:
+      context: .
+      dockerfile: ./tests/Dockerfile
     container_name: test_tcp_h3
-    depends_on:
-      - server
-    volumes:
-      - ./server:/app/server
