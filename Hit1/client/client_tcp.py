@@ -1,5 +1,5 @@
 import socket
-SERVER_HOST = 'servidor_tcp'
+SERVER_HOST = 'servidor_tcp_h1'
 SERVER_PORT = 12345
 
 def start_client():

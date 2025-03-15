@@ -3,19 +3,19 @@ version: '3.8'
 services:
   server:
     build: ./server
-    container_name: servidor_tcp
+    container_name: servidor_tcp_h1
     ports:
       - "12345:12345"
   
   client:
     build: ./client
-    container_name: cliente_tcp
+    container_name: cliente_tcp_h1
     depends_on:
       - server
 
   tests:
     build: ./tests
-    container_name: test_tcp
+    container_name: test_tcp_h1
     depends_on:
       - server
     volumes:

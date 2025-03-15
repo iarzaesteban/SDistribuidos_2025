@@ -1,7 +1,7 @@
 import socket
 import time
 
-SERVER_HOST = 'servidor_tcp'
+SERVER_HOST = 'servidor_tcp_h2'
 SERVER_PORT = 12345
 RETRY_INTERVAL = 5  # Tiempo entre intentos de reconexión
 MESSAGE_INTERVAL = 5  # Tiempo entre cada mensaje enviado
