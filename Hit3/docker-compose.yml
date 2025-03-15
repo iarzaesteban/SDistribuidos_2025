@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  server:
+    build: ./server
+    container_name: servidor_tcp_h3
+    ports:
+      - "12345:12345"
+
+  client:
+    build: ./client
+    container_name: cliente_tcp_h3
+    depends_on:
+      - server
+    command: ["python", "client_tcp.py"]
+    restart: always  # Asegura que el cliente siga ejecutándose
+
+  tests:
+    build: ./tests
+    container_name: test_tcp_h3
+    depends_on:
+      - server
+    volumes:
+      - ./server:/app/server
