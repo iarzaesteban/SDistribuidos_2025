@@ -2,7 +2,7 @@ import socket
 import time
 import pytest
 
-SERVER_HOST = 'servidor_tcp'
+SERVER_HOST = 'server'
 SERVER_PORT = 12345
 
 def test_server_response():
