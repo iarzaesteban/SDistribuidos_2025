@@ -44,25 +44,25 @@ logging.basicConfig(
 logging.getLogger().addFilter(NodeNameFilter())
 
 
-# Serializar y enviar mensajes en JSON
+# Serializamos y enviamos mensajes en JSON
 def send_json(socket, message_dict):
     json_message = json.dumps(message_dict)
     socket.sendall(json_message.encode())
 
 
-# Recibir y deserializar mensajes en JSON
+# Recibimos y deserializamos mensajes en JSON
 def receive_json(socket):
     data = socket.recv(1024).decode()
     if not data:
         return None
     try:
-        return json.loads(data)  # Convertir de JSON a diccionario
+        return json.loads(data)  # Convertimos de JSON a diccionario
     except json.JSONDecodeError:
         logging.error(f"[{NODE_NAME}] Error al decodificar JSON: {data}")
         return None
 
 
-# Manejo de conexiones entrantes
+# Manejamos las conexiones entrantes
 def handle_connection(conn, addr):
     try:
         while True:
@@ -72,7 +72,7 @@ def handle_connection(conn, addr):
             
             logging.info(f"[{NODE_NAME}] Mensaje recibido: {received_data}")
 
-            # Responder con un mensaje en JSON
+            # Respondemos con un mensaje en JSON
             response = {"node": NODE_NAME, "message": "Hola desde " + NODE_NAME}
             send_json(conn, response)
     finally:
