@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  node_d:
+    build: ./node_d
+    container_name: node_d
+    environment:
+      - NODE_NAME=node_d
+      - LISTEN_HOST=0.0.0.0
+      - LISTEN_PORT=4000
+    ports:
+      - "4000:4000"
+    restart: always
+    volumes:
+      - ./logs/node_d:/app/logs
+    networks:
+      - hit6_network
+
+networks:
+  hit6_network:
+    name: hit6_network
+    driver: bridge
