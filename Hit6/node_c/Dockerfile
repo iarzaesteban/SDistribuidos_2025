@@ -2,10 +2,7 @@ FROM python:3.9
 
 WORKDIR /app
 
-COPY program_c.py .
-
-COPY .env.node1 .
-COPY .env.node2 .
+COPY . .
 
 RUN pip install python-dotenv
 
