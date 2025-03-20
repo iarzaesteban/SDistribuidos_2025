@@ -4,6 +4,7 @@ import os
 import json
 import time
 import logging
+import datetime
 from logging.handlers import RotatingFileHandler
 
 NODE_NAME = os.getenv('NODE_NAME')
@@ -32,52 +33,65 @@ logging.basicConfig(
 )
 logging.getLogger().addFilter(NodeNameFilter())
 
-# Registros de nodos C en memoria
-registry = []
-# Lista para guardar las conexiones de los nodos C (no utilizada actualmente)
-connections = []
+# Registros de nodos C para ventanas de tiempo
+current_registry = []  # Nodos activos en la ventana actual
+next_registry = []     # Nodos registrados para la siguiente ventana
 
-INSCRIPTIONS_PATH = "/app/logs/inscriptions.json"
+def save_current_registry_to_file():
+    # Si no hay nodos registrados en la ventana actual, no se crea el archivo.
+    if not current_registry:
+        logging.info("No hay registros en la ventana actual. No se crea archivo.")
+        return
 
-def save_registry_to_file():
+    window_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+    file_path = f"/app/logs/inscriptions_{window_time}.json"
     try:
-        with open(INSCRIPTIONS_PATH, "w") as f:
-            json.dump(registry, f, indent=4)
-        logging.info(f"Registro actualizado guardado en '{INSCRIPTIONS_PATH}'")
+        with open(file_path, "w") as f:
+            json.dump(current_registry, f, indent=4)
+        logging.info(f"Registro de ventana guardado en '{file_path}'")
     except Exception as e:
-        logging.error(f"Error al guardar el registro en el archivo: {e}")
+        logging.error(f"Error al guardar el registro de ventana: {e}")
 
 
+def window_rotation_loop():
+    global current_registry, next_registry
+    while True:
+        now = datetime.datetime.now()
+        # Calcula los segundos restantes hasta el inicio del próximo minuto
+        seconds_to_sleep = 60 - now.second
+        time.sleep(seconds_to_sleep)
+        # Al alcanzar el límite, guarda la ventana actual
+        save_current_registry_to_file()
+        # Rota: los nodos de next_registry se vuelven la ventana actual
+        current_registry = next_registry
+        next_registry = []
+        logging.info("Ventana rotada: la siguiente ventana se asigna a la actual.")
 
 def handle_connection(conn, addr):
-    global registry, connections
-
+    global current_registry, next_registry
     data = conn.recv(1024).decode()
     if data:
         node_info = json.loads(data)
-        if node_info not in registry:
-            registry.append(node_info)
-            logging.info(f"[NODE D] Registrando nodo: {node_info}")
-            print(f"[NODE D] Registrando nodo: {node_info}")
-            # Guardamos el registro en un archivo JSON
-            save_registry_to_file()
-        
-        # Enviamos la lista actualizada directamente al nodo que se conecta
-        conn.sendall(json.dumps(registry).encode())
+        # Se asigna el nodo a la siguiente ventana (sin duplicados)
+        if node_info not in next_registry:
+            next_registry.append(node_info)
+            logging.info(f"[NODE D] Registrando nodo para la ventana futura: {node_info}")
+            print(f"[NODE D] Registrando nodo para la ventana futura: {node_info}")
+        # Se envía como respuesta la unión de los nodos de ambas ventanas
+        response_registry = current_registry + next_registry
+        conn.sendall(json.dumps(response_registry).encode())
         conn.close()
-
-        # Notificamos a todos los nodos registrados sobre el nuevo nodo
+        # Se notifica (broadcast) a todos los nodos registrados
         broadcast_registry()
 
 def broadcast_registry():
-    global registry
-
-    # Enviamos la lista de nodos a todos los nodos registrados
-    for node in registry:
+    global current_registry, next_registry
+    all_nodes = current_registry + next_registry
+    for node in all_nodes:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((node["ip"], node["port"]))
-                s.sendall(json.dumps(registry).encode())
+                s.sendall(json.dumps(all_nodes).encode())
                 logging.info(f"Enviamos lista actualizada a {node}")
                 print(f"Enviamos lista actualizada a {node}")
         except Exception as e:
@@ -95,4 +109,8 @@ def start_server():
             threading.Thread(target=handle_connection, args=(conn, addr)).start()
 
 if __name__ == "__main__":
+    # Inicia el hilo para la rotación de ventanas
+    rotation_thread = threading.Thread(target=window_rotation_loop, daemon=True)
+    rotation_thread.start()
+    # Inicia el servidor
     start_server()
