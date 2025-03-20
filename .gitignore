@@ -4,3 +4,5 @@ Hit6/logs/node1/output.log
 Hit6/logs/node2/output.log
 **/logs/**/*.log
 logs/**/*.log
+**/logs/**/*.json
+logs/**/*.json

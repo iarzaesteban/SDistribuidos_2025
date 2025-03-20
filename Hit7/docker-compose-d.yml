@@ -1,0 +1,22 @@
+
+services:
+  node_d:
+    build: ./node_d
+    container_name: node_d
+    environment:
+      - NODE_NAME=node_d
+      - LISTEN_HOST=0.0.0.0
+      - LISTEN_PORT=4001
+    ports:
+      - "4001:4001"
+    restart: always
+    volumes:
+      - ./logs/node_d:/app/logs
+
+    networks:
+      - hit7_network
+
+networks:
+  hit7_network:
+    name: hit7_network
+    driver: bridge
