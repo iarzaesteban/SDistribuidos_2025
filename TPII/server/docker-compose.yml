@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  fastapi_app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
+    environment:
+      - UVICORN_CMD=uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    name: app_network
+    driver: bridge
