@@ -1,36 +1,89 @@
-name: CI/CD TCP Server
+name: CI/CD TCP Multi-Modulos
 
 on:
   push:
     branches:
       - master
       - develop
+    paths:
+      - 'Hit1/**'
+      - 'Hit2/**'
+      - 'Hit3/**'
+      - 'Hit4/**'
+      - 'Hit5/**'
   pull_request:
     branches:
       - master
       - develop
+    paths:
+      - 'Hit1/**'
+      - 'Hit2/**'
+      - 'Hit3/**'
+      - 'Hit4/**'
+      - 'Hit5/**'
 
 jobs:
-  build-test:
+  hit1:
+    name: Ejecutar Hit1
     runs-on: ubuntu-latest
-
     steps:
-      - name: Clonar repositorio
-        uses: actions/checkout@v3
-
-      - name: Instalar Docker y Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
-
-      - name: Construir contenedores
-        working-directory: Hit1
+      - uses: actions/checkout@v3
+      - run: sudo apt-get update && sudo apt-get install -y docker-compose
+      - working-directory: Hit1
         run: make build
-
-      - name: Ejecutar pruebas
-        working-directory: Hit1
+      - working-directory: Hit1
         run: make test
-
-      - name: Detener y limpiar contenedores
-        working-directory: Hit1
+      - working-directory: Hit1
         run: make down
+
+  hit2:
+    name: Ejecutar Hit2
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt-get update && sudo apt-get install -y docker-compose
+      - working-directory: Hit2
+        run: make build
+      - working-directory: Hit2
+        run: make test
+      - working-directory: Hit2
+        run: make down
+
+  hit3:
+    name: Ejecutar Hit3
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt-get update && sudo apt-get install -y docker-compose
+      - working-directory: Hit3
+        run: make build
+      - working-directory: Hit3
+        run: make test
+      - working-directory: Hit3
+        run: make down
+
+  hit4:
+    name: Ejecutar Hit4
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt-get update && sudo apt-get install -y docker-compose
+      - working-directory: Hit4
+        run: make up
+      - working-directory: Hit4
+        run: make nodo1_log
+      - working-directory: Hit4
+        run: make nodo2_log
+
+  hit5:
+    name: Ejecutar Hit5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt-get update && sudo apt-get install -y docker-compose
+      - working-directory: Hit5
+        run: make up
+      - working-directory: Hit5
+        run: make nodo1_log
+      - working-directory: Hit5
+        run: make nodo2_log
