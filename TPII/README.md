@@ -38,6 +38,12 @@ make build_server_tasks_image
 make up_server
 ```
 
+Para hacer pruebas de performance(guarda las metricas en tests/resultados_real.json):
+```bash
+make test_real
+```
+
+
 Le pegamos al servidor con curl simulando un cliente. Abrimos otra terminal y ejecutamos:
 
 En linux:
@@ -68,9 +74,6 @@ make test_docker
 ```
 
 
-
-
-
 ## 🧪 CI automático con GitHub Actions
 
 ![CI](https://github.com/iarzaesteban/SDistribuidos_2025/actions/workflows/ci.yml/badge.svg?branch=practico_II)
@@ -82,5 +85,4 @@ Este proyecto incluye un pipeline de **CI** en GitHub Actions que:
 - 🧪 Mockea el cliente Docker para evitar fallas por imágenes ausentes
 
 Los tests están ubicados en la carpeta `tests/` y se ejecutan automáticamente al hacer `push` o `pull_request` sobre la rama `practico_II`.
-
 
