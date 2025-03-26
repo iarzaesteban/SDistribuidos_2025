@@ -66,3 +66,21 @@ Para hacer pruebas automatizadas:
 ```bash
 make test_docker
 ```
+
+
+
+
+
+## 🧪 CI automático con GitHub Actions
+
+![CI](https://github.com/iarzaesteban/SDistribuidos_2025/actions/workflows/ci.yml/badge.svg?branch=practico_II)
+
+Este proyecto incluye un pipeline de **CI** en GitHub Actions que:
+
+- 📦 Instala dependencias desde `requirements.txt`
+- ✅ Ejecuta pruebas automatizadas con `pytest`
+- 🧪 Mockea el cliente Docker para evitar fallas por imágenes ausentes
+
+Los tests están ubicados en la carpeta `tests/` y se ejecutan automáticamente al hacer `push` o `pull_request` sobre la rama `practico_II`.
+
+
