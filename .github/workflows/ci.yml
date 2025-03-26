@@ -12,6 +12,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: TPII
+
     steps:
       - name: Clonar el repositorio
         uses: actions/checkout@v3
