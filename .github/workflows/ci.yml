@@ -31,4 +31,4 @@ jobs:
 
       - name: Correr tests
         run: |
-          pytest tests/
+          pytest -m "not localtest" tests/

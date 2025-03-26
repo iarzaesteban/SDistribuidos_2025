@@ -2,6 +2,8 @@ import requests
 import time
 import json
 from pathlib import Path
+import pytest
+pytestmark = pytest.mark.localtest
 
 BASE_URL = "http://localhost:8000/getRemoteTask/"
 RESULTADOS_JSON = Path("tests/resultados_real.json")
@@ -33,6 +35,7 @@ def medir_tiempo(operacion, parametros, esperado):
         "status_code": response.status_code,
         "tiempo_ms": round(duration_ms, 2)
     }
+
 
 def test_tiempo_real():
     resultados = []
