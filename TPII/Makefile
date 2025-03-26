@@ -28,8 +28,12 @@ test_docker:
 
 # Testea el servidor principal (FastAPI)
 test_main:
-	docker-compose run --rm fastapi_app python -m pytest tests/test_main.py
+	docker-compose run --rm fastapi_app python -m pytest --capture=tee-sys tests/test_main.py
 
 # Testea el microservicio de tareas
 test_tasks:
 	docker-compose run --rm fastapi_app python -m pytest tests/test_task_service.py
+
+# Corre tests reales contra el servidor real en localhost
+test_real:
+	python tests/test_real_tiempo.py
