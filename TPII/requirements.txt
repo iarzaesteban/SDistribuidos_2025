@@ -2,3 +2,5 @@ fastapi
 uvicorn
 docker
 python-dotenv
+pytest
+httpx

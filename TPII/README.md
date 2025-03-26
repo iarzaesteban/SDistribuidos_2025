@@ -40,6 +40,7 @@ make up_server
 
 Le pegamos al servidor con curl simulando un cliente. Abrimos otra terminal y ejecutamos:
 
+En linux:
 ```bash
 curl -X POST "http://localhost:8000/getRemoteTask/" -H "Content-Type: application/json" -d '{
   "imagen_docker": "task_service:latest",
@@ -49,6 +50,19 @@ curl -X POST "http://localhost:8000/getRemoteTask/" -H "Content-Type: applicatio
 }'
 ```
 
+O desde un powershell:
+```bash
+Invoke-WebRequest -Uri "http://localhost:8000/getRemoteTask/" `
+  -Method POST `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body '{"imagen_docker": "tasks_image:latest", "calculo": "suma", "parametros": {"a": 10, "b": 20, "c": 5}, "datos_adicionales": {"descripcion": "Suma de 3 valores"}}'
+```
+
 La respuesta a esto sería la suma de a + b + c. En la terminal deberiamos ver algo como:
 
 {"resultado":35}%
+
+Para hacer pruebas automatizadas:
+```bash
+make test_docker
+```

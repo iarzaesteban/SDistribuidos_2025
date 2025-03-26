@@ -20,3 +20,16 @@ down_server:
 # Reiniciamos el servidor
 restart_server:
 	docker-compose down && docker-compose up
+
+
+# Correr tests dentro del contenedor Docker
+test_docker:
+	docker-compose run --rm fastapi_app python -m pytest tests/
+
+# Testea el servidor principal (FastAPI)
+test_main:
+	docker-compose run --rm fastapi_app python -m pytest tests/test_main.py
+
+# Testea el microservicio de tareas
+test_tasks:
+	docker-compose run --rm fastapi_app python -m pytest tests/test_task_service.py
