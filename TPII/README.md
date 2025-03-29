@@ -39,14 +39,15 @@ make up_server
 ```
 
 Para hacer pruebas de performance(guarda las metricas en tests/resultados_real.json):
+
 ```bash
 make test_real
 ```
 
-
 Le pegamos al servidor con curl simulando un cliente. Abrimos otra terminal y ejecutamos:
 
 En linux:
+
 ```bash
 curl -X POST "http://localhost:8000/getRemoteTask/" -H "Content-Type: application/json" -d '{
   "imagen_docker": "task_service:latest",
@@ -56,7 +57,26 @@ curl -X POST "http://localhost:8000/getRemoteTask/" -H "Content-Type: applicatio
 }'
 ```
 
+Con credenciales  
+En linux:
+
+```bash
+curl -X POST "http://localhost:8000/getRemoteTask/" \
+     -H "Content-Type: application/json" \
+     -d '{
+  "imagen_docker": "iarzaesteban94/sdistribuidos2025:latest",
+  "calculo": "suma",
+  "parametros": {"a": 10, "b": 20, "c": 5},
+  "datos_adicionales": {"descripcion": "Suma de 3 valores"},
+  "credenciales": {
+    "usuario": "iarzaesteban94",
+    "password": "'$(echo -n "<access_token>" | base64)'"
+  }
+}'
+```
+
 O desde un powershell:
+
 ```bash
 Invoke-WebRequest -Uri "http://localhost:8000/getRemoteTask/" `
   -Method POST `
@@ -69,10 +89,10 @@ La respuesta a esto sería la suma de a + b + c. En la terminal deberiamos ver a
 {"resultado":35}%
 
 Para hacer pruebas automatizadas:
+
 ```bash
 make test_docker
 ```
-
 
 ## 🧪 CI automático con GitHub Actions
 
@@ -86,3 +106,22 @@ Este proyecto incluye un pipeline de **CI** en GitHub Actions que:
 
 Los tests están ubicados en la carpeta `tests/` y se ejecutan automáticamente al hacer `push` o `pull_request` sobre la rama `practico_II`.
 
+## Configuaración para Docker Hub
+
+1- Crear cuenta en Docker Hub
+2- Crear un access token para que en vez de hacer el login le facilitemos el usuario y en el password el token
+3- Crear repo en Docker Hub
+4- En el Dockerfile recordar instalar el cliente docker "apt-get install -y docker.io"
+5- En el docker-compose-yml recordar montar el socket de Docker:
+volumes:
+
+- /var/run/docker.sock:/var/run/docker.sock
+
+En el curl del cliente en el parámetro imagen_docker configurar de la siguiente manera:
+<nombre_usuario>/<nombre_repo_dockerHub>:latest
+
+Luego en el parámetro credenciales configurarlo de la siguiente manera:
+{
+"usuario": "<nombre_usuario>",
+"password": "'$(echo -n "<access_token>" | base64)'"
+}
