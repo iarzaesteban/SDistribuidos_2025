@@ -70,7 +70,7 @@ curl -X POST "http://localhost:8000/getRemoteTask/" \
   "datos_adicionales": {"descripcion": "Suma de 3 valores"},
   "credenciales": {
     "usuario": "iarzaesteban94",
-    "password": "'$(echo -n "<access_token>" | base64)'"
+    "password": "'$(echo -n "<access_token>"º | base64)'"
   }
 }'
 ```
@@ -105,3 +105,30 @@ Este proyecto incluye un pipeline de **CI** en GitHub Actions que:
 - 🧪 Mockea el cliente Docker para evitar fallas por imágenes ausentes
 
 Los tests están ubicados en la carpeta `tests/` y se ejecutan automáticamente al hacer `push` o `pull_request` sobre la rama `practico_II`.
+
+## Configuaración para Docker Hub
+
+1- Crear cuenta en Docker Hub
+2- Crear un access token para que en vez de hacer el login le facilitemos el usuario y en el password el token
+3- Crear repo en Docker Hub
+4- En el Dockerfile recordar instalar el cliente docker "apt-get install -y docker.io"
+5- En el docker-compose-yml recordar montar el socket de Docker:
+volumes:
+
+- /var/run/docker.sock:/var/run/docker.sock
+
+En el curl del cliente en el parámetro imagen_docker configurar de la siguiente manera:
+<nombre_usuario>/<nombre_repo_dockerHub>:latest
+
+Luego en el parámetro credenciales configurarlo de la siguiente manera:
+{
+"usuario": "<nombre_usuario>",
+"password": "'$(echo -n "<access_token>" | base64)'"
+}
+
+Para la materia Sistemas distribuidos creamos una cuenta en Docker Hub y un repo, las credenciales son:
+repo: sdistribuidos2025
+usuario: iarzaesteban94
+password: º
+
+º --Solicitarlo al administrador--
