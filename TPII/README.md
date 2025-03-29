@@ -125,3 +125,7 @@ Luego en el parámetro credenciales configurarlo de la siguiente manera:
 "usuario": "<nombre_usuario>",
 "password": "'$(echo -n "<access_token>" | base64)'"
 }
+
+Para la materia Sistemas distribuidos creamos una cuenta en Docker Hub y un repo, las credenciales son:
+repo: sdistribuidos2025
+usuario: iarzaesteban94
