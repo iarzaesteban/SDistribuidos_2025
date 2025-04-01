@@ -84,6 +84,12 @@ Invoke-WebRequest -Uri "http://localhost:8000/getRemoteTask/" `
   -Body '{"imagen_docker": "tasks_image:latest", "calculo": "suma", "parametros": {"a": 10, "b": 20, "c": 5}, "datos_adicionales": {"descripcion": "Suma de 3 valores"}}'
 ```
 
+Con credenciales  
+En powershell:
+```bash
+.\ejecutar_tarea.ps1
+```
+
 La respuesta a esto sería la suma de a + b + c. En la terminal deberiamos ver algo como:
 
 {"resultado":35}%
