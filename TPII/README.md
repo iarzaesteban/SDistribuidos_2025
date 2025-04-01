@@ -138,3 +138,36 @@ usuario: iarzaesteban94
 password: º
 
 º --Solicitarlo al administrador--
+
+
+## 🧪 Verificar estado del servicio de tareas (`/status/`)
+
+---
+
+### 🌐 Verificar remotamente (Docker Hub)
+
+Si se subio la imagen a Docker Hub (`iarzaesteban94/sdistribuidos2025:latest`), podés testear el estado del contenedor directamente desde el registro remoto con:
+
+```powershell
+.\test_task_service_status.ps1
+```
+
+```linux
+./test_task_status_linux.sh
+```
+
+Este script:
+
+1. Baja la imagen desde Docker Hub (si no la tenés local).
+2. La ejecuta con el puerto 5000.
+3. Consulta el endpoint `/status/`.
+4. Muestra la respuesta.
+5. Y apaga el contenedor.
+
+También deberías ver una respuesta como:
+
+```
+Respuesta del servicio:
+status      : Its running
+status_code : 200
+```
