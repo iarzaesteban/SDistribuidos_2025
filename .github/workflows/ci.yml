@@ -31,4 +31,6 @@ jobs:
 
       - name: Correr tests
         run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
           pytest -m "not localtest" tests/
+
