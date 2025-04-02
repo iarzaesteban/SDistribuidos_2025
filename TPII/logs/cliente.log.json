@@ -1,0 +1,43 @@
+[
+{
+    "timestamp":  "2025-04-02T13:56:19Z",
+    "evento":  "ejecutar_tarea",
+    "parametros_enviados":  {
+                                "datos_adicionales":  {
+                                                          "descripcion":  "Suma de 3 valores"
+                                                      },
+                                "parametros":  {
+                                                   "c":  5,
+                                                   "b":  20,
+                                                   "a":  10
+                                               },
+                                "imagen_docker":  "tasks_image:latest",
+                                "calculo":  "suma"
+                            },
+    "componente":  "cliente",
+    "respuesta":  {
+                      "resultado":  35
+                  }
+}
+,
+{
+    "timestamp":  "2025-04-02T13:59:40Z",
+    "evento":  "ejecutar_tarea",
+    "parametros_enviados":  {
+                                "datos_adicionales":  {
+                                                          "descripcion":  "Suma de 3 valores"
+                                                      },
+                                "parametros":  {
+                                                   "c":  5,
+                                                   "b":  20,
+                                                   "a":  10
+                                               },
+                                "imagen_docker":  "tasks_image:latest",
+                                "calculo":  "suma"
+                            },
+    "componente":  "cliente",
+    "respuesta":  {
+                      "resultado":  35
+                  }
+}
+]

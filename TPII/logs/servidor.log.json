@@ -1,0 +1,8 @@
+{"timestamp": "2025-04-02T13:56:13.590514Z", "nivel": "INFO", "componente": "servidor", "mensaje": "Iniciando contenedor 'task_container_122a509a-27d5-4569-9fc8-976d6a4ecc83' con imagen 'tasks_image:latest'"}
+{"timestamp": "2025-04-02T13:56:18.915127Z", "nivel": "INFO", "componente": "servidor", "mensaje": "Contenedor iniciado. IP: 172.18.0.3"}
+{"timestamp": "2025-04-02T13:56:19.659996Z", "nivel": "INFO", "componente": "servidor", "mensaje": "Contenedor detenido: task_container_122a509a-27d5-4569-9fc8-976d6a4ecc83"}
+{"timestamp": "2025-04-02T13:56:19.660714Z", "nivel": "INFO", "componente": "servidor", "mensaje": "Tarea ejecutada con éxito"}
+{"timestamp": "2025-04-02T13:59:33.991426Z", "nivel": "INFO", "componente": "servidor", "mensaje": "Iniciando contenedor 'task_container_5d50aa57-6470-41f6-870f-8642163c618b' con imagen 'tasks_image:latest'"}
+{"timestamp": "2025-04-02T13:59:39.270575Z", "nivel": "INFO", "componente": "servidor", "mensaje": "Contenedor iniciado. IP: 172.18.0.3"}
+{"timestamp": "2025-04-02T13:59:40.016405Z", "nivel": "INFO", "componente": "servidor", "mensaje": "Contenedor detenido: task_container_5d50aa57-6470-41f6-870f-8642163c618b"}
+{"timestamp": "2025-04-02T13:59:40.016772Z", "nivel": "INFO", "componente": "servidor", "mensaje": "Tarea ejecutada con éxito"}
