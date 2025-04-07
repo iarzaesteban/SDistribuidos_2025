@@ -1,7 +1,6 @@
 # Explicacion de programa
 
 ![alt text](<tp2sd2025.drawio (1).png>)
-
 ## Cliente
 
 El cliente va a realizar una solicitud (HTTP GET/POST) para comunicarse con el servidor.

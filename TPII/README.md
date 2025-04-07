@@ -18,6 +18,10 @@ El proyecto contiene las siguientes imágenes Docker:
 1. **Servidor (`server_image`)**: Una imagen que contiene el servidor API en FastAPI, que maneja la solicitud y ejecución de tareas remotas.
 2. **Tareas (`server_tasks_image`)**: Una imagen que contiene las tareas específicas que se ejecutan dentro de contenedores Docker, las cuales pueden ser definidas por el cliente.
 
+## Video explicativo
+
+[Ver video TP2 - SD2025](TP2-SD2025.mp4)
+
 ## Comandos de Docker
 
 Puedes usar los siguientes comandos para interactuar con el proyecto:
