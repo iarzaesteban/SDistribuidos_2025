@@ -1,0 +1,11 @@
+# Terraform sensitive files
+*.tfvars
+*.tfvars.json
+*.auto.tfvars
+*.backup
+*.bak
+*.log
+.terraform/
+
+# Google credentials
+*.json
