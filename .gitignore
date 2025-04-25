@@ -6,3 +6,7 @@ Hit6/logs/node2/output.log
 logs/**/*.log
 TPII/tests/**/*.json
 logs/*.json
+TPIII/Hit3/infra/credentials/
+TPIII/Hit3/infra/*.tfstate
+TPIII/Hit3/infra/*.tfstate.backup
+TPIII/Hit3/infra/.terraform/
