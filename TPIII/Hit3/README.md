@@ -739,27 +739,5 @@ La **escalabilidad** se implementa en diferentes niveles:
   - Agregar o eliminar VMs manualmente (o mediante automatización futura) en función de la demanda.
 - La arquitectura está preparada para escalar el número de VMs de forma horizontal, aumentando así la capacidad total del sistema.
 
----
-
-### 🏗️ Posibles Mejoras Futuras
-
-- **Autoscaling de VMs**:
-  - Implementar un sistema automático de escalado de máquinas virtuales basado en métricas de carga en RabbitMQ (cantidad de tareas pendientes).
-
-- **Optimización interna de Workers**:
-  - Incorporar procesamiento paralelo interno (multi-threading o multi-processing dentro de cada Worker) para aprovechar mejor los recursos de cada máquina.
-
-- **Balanceo dinámico de tareas**:
-  - Distribuir dinámicamente la cantidad de fragmentos de imagen entre Workers disponibles en función de su capacidad de procesamiento actual.
-
----
-
-### 🚀 Beneficios alcanzados
-
-- 📈 **Adaptación automática** a diferentes volúmenes de carga.
-- ⚡ **Reducción de tiempos de respuesta** en escenarios de alta concurrencia.
-- 💸 **Optimización de costos** al liberar recursos cuando la demanda es baja.
-
-El sistema demuestra un comportamiento eficiente y escalable, tanto en su arquitectura de microservicios como en su despliegue sobre infraestructura cloud.
 
 
