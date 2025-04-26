@@ -1,30 +1,9 @@
-make all        # Crea el cluster, lo conecta y aplica todos los deployments
-make infra      # Solo crea el cluster con terraform
-make deploy     # Solo despliega los servicios
-make restart    # Reinicia los pods (por si actualizás imágenes)
-make destroy    # Apaga todo y libera recursos
-
-dashboards:
-	while ($true) {
-		Write-Host "=== PODS ==="
-		kubectl get pods -l app=worker
-		Write-Host "`n=== CPU / MEM ==="
-		kubectl top pods -l app=worker
-		Start-Sleep -Seconds 3
-		Clear-Host
-	}
-
-falta:
-guardar logs.
-ci/cd.
-video.
-
-
 # 📋 README para Hit3
 
 # 📚 Tabla de Contenidos
 
 - [Objetivo General](#objetivo-general)
+- [Deploy](#deploy)
 - [Estructura del Repositorio](#estructura-del-repositorio)
 - [Diseño de Arquitectura](#diseño-de-arquitectura)
 - [Backend](#backend)
@@ -75,11 +54,26 @@ A diferencia de soluciones anteriores de clústeres locales, en este caso se imp
 
 Los resultados obtenidos permiten evaluar la escalabilidad, eficiencia y capacidad de respuesta del sistema ante diferentes condiciones de uso.
 
+## Deploy
+
+Para poder correr el proyecto:
+
+```bash
+  make deploy
+  .\deploy_all.ps1
+```
+
+Para finalizar y liberar recursos:
+
+```bash
+  make destroy
+```
+
 ## Estructura del Repositorio
 
 La estructura de carpetas del proyecto es la siguiente:
 
-```mermaid
+```bash
 
 /Hit3/
 ├── backend/                  # Servicio Backend (FastAPI) que coordina el procesamiento
@@ -147,7 +141,7 @@ La estructura de carpetas del proyecto es la siguiente:
 
 El sistema está compuesto por múltiples servicios distribuidos, organizados en una arquitectura asincrónica y escalable. El flujo principal de procesamiento es el siguiente:
 
-```mermaid
+```bash
 
 [ Usuario ]
      |
@@ -184,33 +178,62 @@ Otros componentes del sistema:
 
 - 🖥️ VMs externas: ejecutan los workers fuera del clúster.
 
+
 ```mermaid
+flowchart TD
+ subgraph Usuario["Usuario"]
+        A1["Usuario en navegador"]
+  end
+ subgraph Frontend["Nginx"]
+        B1["Formulario HTML para subir imagen"]
+        B2["Consulta resultado procesado"]
+  end
+ subgraph Backend["FastAPI"]
+        C1["Recibe imagen"]
+        C2["Divide imagen en fragmentos"]
+        C3["Encola tareas en RabbitMQ"]
+        C4["Escucha Redis Pub/Sub"]
+        C5["Reconstruye imagen final"]
+        C6["Sirve resultado procesado"]
+  end
+ subgraph RabbitMQ["Cola de mensajes"]
+        D1["Cola de tareas de fragmentos"]
+  end
+ subgraph Workers["VMs Externas"]
+        E1["Worker escucha cola"]
+        E2["Procesa fragmento - Filtro Sobel"]
+        E3["Publica resultado en Redis"]
+  end
+ subgraph Redis["Pub/Sub"]
+        F1["Canal Pub/Sub por imagen"]
+  end
+ subgraph subGraph6["Kubernetes Cluster"]
+        G1["Node Pool Infraestructura"]
+        G2["Node Pool Aplicaciones"]
+  end
+    A1 --> B1
+    B1 --> C1
+    C1 --> C2
+    C2 --> C3
+    C3 --> D1
+    D1 --> E1
+    E1 --> E2
+    E2 --> E3
+    E3 --> F1
+    F1 --> C4
+    C4 --> C5
+    C5 --> C6
+    C6 --> B2
+    B2 --> A1
+    G1 --> D1 & F1
+    G2 --> B1 & C1
 
-graph TD
-    A[Usuario] --> B[Frontend (Nginx)]
-    B --> C[Backend (FastAPI)]
-    C --> D[Divide imagen + encola en RabbitMQ]
-    D --> E[Workers (VMs externas)]
-    E --> F[Publican resultado en Redis]
-    F --> G[Backend reconstruye imagen]
-    G --> H[Frontend muestra imagen final]
-
-    subgraph Infraestructura
-        I[Kubernetes (GKE)]
-        J[RabbitMQ]
-        K[Redis]
-    end
-
-    C --> J
-    E --> K
-    J --> E
-    K --> G
-    I --> B
-    I --> C
-    I --> J
-    I --> K
 
 ```
+
+
+
+
 
 ### Explicacion del Flujo
 
@@ -592,30 +615,6 @@ Estos permiten levantar tanto la infraestructura como los servicios de forma rá
   - Permite ejecutar procesos con una sola línea de comando desde terminal.
 
 ---
-
-### 🚀 Flujo típico de despliegue
-
-1. **Inicializar infraestructura**:
-   ```bash
-   cd infra/
-   terraform init
-   terraform apply -auto-approve
-	```
-
-2. **Inicializar infraestructura**:
-   ```bash
-	kubectl apply -f k8s_actualizados/
-	```
-
-3. **Inicializar infraestructura**:
-   ```bash
-	./deploy_all.ps1
-	```
-
-4. **Inicializar infraestructura**:
-   ```bash
-	kubectl get pods
-	```
 
 ## Pruebas de Rendimiento
 
