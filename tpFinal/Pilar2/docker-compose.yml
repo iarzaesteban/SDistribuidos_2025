@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  nct:
+    build:
+      context: ./coordinador
+      dockerfile: deploy/Dockerfile
+    container_name: nct
+    ports:
+      - "11111:11111"
+    restart: unless-stopped
+    volumes:
+      - ./coordinador/app:/app/app
+    depends_on:
+      - redis
+      - rabbitmq
+    env_file:
+      - .env
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    env_file:
+      - .env
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+
+volumes:
+  redis_data:
