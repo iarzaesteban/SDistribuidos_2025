@@ -8,6 +8,10 @@ redis_client = redis.Redis(
     decode_responses=True
 )
 
+def get_active_workers():
+    keys = redis_client.keys("heartbeat:*")
+    return [key.split(":")[1] for key in keys]
+
 def ping_redis():
     try:
         return redis_client.ping()

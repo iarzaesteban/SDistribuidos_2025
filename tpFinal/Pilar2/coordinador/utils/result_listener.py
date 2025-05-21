@@ -20,6 +20,13 @@ def validar_y_guardar_bloque(ch, method, properties, body):
     tarea = data["original_task"]
     nonce = data["nonce"]
     block_hash = data["block_hash"]
+    job_id = data.get("task_id")
+
+    # Evita duplicados: ¿ya se resolvió este job_id?
+    if job_id and redis_client.exists(f"solved:{job_id}"):
+        logger.warning(f"⚠️ Resultado ignorado: ya se resolvió job_id={job_id}")
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+        return
 
     raw_data = f"{tarea['previous_hash']}{tarea['transactions']}{nonce}{tarea['timestamp']}"
     recalculado = hashlib.sha256(raw_data.encode()).hexdigest()
@@ -29,25 +36,25 @@ def validar_y_guardar_bloque(ch, method, properties, body):
     elif not cumple_dificultad(block_hash, tarea["difficulty"]):
         logger.warning("❌ Hash no cumple con la dificultad.")
     else:
-        # Guardar bloque en Redis
-        block_key = f"block:{block_hash}"
-        redis_client.hmset(block_key, {
+        # ✅ Guardar bloque
+        block_count = int(redis_client.get("block_count") or 0)
+        redis_client.set(f"block:{block_count}", json.dumps({
             "previous_hash": tarea["previous_hash"],
             "nonce": nonce,
             "timestamp": tarea["timestamp"],
-            "transactions": json.dumps(tarea["transactions"]),
+            "transactions": tarea["transactions"],
             "block_hash": block_hash
-        })
-        logger.info(f"✅ Bloque válido guardado en Redis: {block_key}")
+        }))
+        redis_client.set("block_count", block_count + 1)
+        redis_client.set("last_block_hash", block_hash)
+        logger.info(f"✅ Bloque #{block_count} guardado correctamente (completo).")
 
-        # Limpieza del job_id si existe
-        job_id = data.get("job_id")
+        # Marcamos que este job fue resuelto
         if job_id:
-            redis_client.delete(f"solved:{job_id}")
+            redis_client.set(f"solved:{job_id}", "1")
             logger.info(f"🧹 Eliminada clave de control: solved:{job_id}")
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
-
 
 def start_result_listener():
     def run():
@@ -57,7 +64,6 @@ def start_result_listener():
         connection = pika.BlockingConnection(params)
         channel = connection.channel()
         channel.queue_declare(queue=RESULT_QUEUE)
-
         channel.basic_consume(queue=RESULT_QUEUE, on_message_callback=validar_y_guardar_bloque)
         channel.start_consuming()
 
