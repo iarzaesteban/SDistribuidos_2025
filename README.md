@@ -1,13 +1,21 @@
 # SDistribuidos_2025
 
-[Hit1 - Servidor TCP en Docker](Hit1/README.md)
+## TP4 - Programación paralela (Shaders)
 
-[Hit2 - Servidor TCP en Docker](Hit2/README.md)
+[Hit1 - Explicaciones teóricas](TPIV/Hit1.md)
 
-[Hit3 - Servidor TCP en Docker](Hit3/README.md)
+[Hit2 - Explicaciones sobre el video](TPIV/Hit2.md)
 
-[Hit4 - Servidor TCP en Docker](Hit4/README.md)
+[Hit3 - Copiar pixeles desde iChannel0 a la salida](TPIV/Hit3_4.md)
 
-[Hit5 - Servidor TCP en Docker](Hit5/README.md)
+[Hit4 - Modificamos del hit anterior y rotamos la imagen](TPIV/Hit4/)
 
-[Hit6 - Servidor TCP en Docker](Hit6/README.md)
+[Hit5 - Aplicamos filtro chroma básico](TPIV/Hit5/Readme.md)
+
+[Hit6 - Modificamos el hit anterior, aplicamos filtros de grises y documentamos resultados](TPIV/Hit6/Readme.md)
+
+## Authors
+
+- Rodriguez Emanuel
+
+- Iarza Esteban
