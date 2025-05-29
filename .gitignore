@@ -6,3 +6,9 @@ Hit6/logs/node2/output.log
 logs/**/*.log
 TPII/tests/**/*.json
 logs/*.json
+tpFinal/Pilar3/*.json
+tpFinal/Pilar3/infra/*.tfstate
+tpFinal/Pilar3/infra/*.tfstate.*
+tpFinal/Pilar3/infra/.terraform/
+tpFinal/Pilar3/infra/terraform.tfvars
+tpFinal/Pilar3/infra/secrets/
