@@ -23,10 +23,12 @@ def validar_y_guardar_bloque(ch, method, properties, body):
     job_id = data.get("task_id")
 
     # Evita duplicados: ¿ya se resolvió este job_id?
-    if job_id and REDIS_CLIENT.exists(f"solved:{job_id}"):
-        logger.warning(f"Resultado ignorado: ya se resolvió job_id={job_id}")
-        ch.basic_ack(delivery_tag=method.delivery_tag)
-        return
+    if job_id:
+        valor_actual = REDIS_CLIENT.get(f"solved:{job_id}")
+        if valor_actual and valor_actual == "1":
+            logger.warning(f"Resultado ignorado: ya se resolvió job_id={job_id}")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
 
     raw_data = f"{tarea['previous_hash']}{tarea['transactions']}{nonce}{tarea['timestamp']}"
     recalculado = hashlib.sha256(raw_data.encode()).hexdigest()
@@ -52,7 +54,7 @@ def validar_y_guardar_bloque(ch, method, properties, body):
         # Marcamos que este job fue resuelto
         if job_id:
             REDIS_CLIENT.set(f"solved:{job_id}", "1")
-            logger.info(f"Eliminada clave de control: solved:{job_id}")
+            logger.info(f"Marcado como resuelto: solved:{job_id}")
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
 

@@ -80,6 +80,7 @@ def manejar_tarea(ch, method, properties, body: bytes) -> None:
     """Procesa una tarea recibida desde la cola de RabbitMQ."""
     try:
         tarea = json.loads(body.decode())
+        logger.info(f"[{WORKER_ID}] Procesando tarea: {tarea.get('job_id', 'sin_id')}")
         resultado = ejecutar_brute_range(tarea)
         if resultado:
             ch.basic_publish(
@@ -105,6 +106,9 @@ def iniciar_worker() -> None:
     channel.queue_declare(queue=RESULTS_QUEUE)
 
     logger.info(f"[{WORKER_ID}] Worker en espera de tareas...")
+    
+    #channel.basic_qos(prefetch_count=1)  # Para que no tome más de una tarea simultáneamente
+
     channel.basic_consume(queue=TASK_QUEUE, on_message_callback=manejar_tarea)
     channel.start_consuming()
 
