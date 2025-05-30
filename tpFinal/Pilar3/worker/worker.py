@@ -16,6 +16,9 @@ RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
 RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
 TASK_QUEUE = os.getenv("TASK_QUEUE", "transactions")
 RESULTS_QUEUE = os.getenv("RESULTS_QUEUE", "results")
+BASE = int(os.getenv("BASE", "16"))
+PREFIX = os.getenv("PREFIX", "0000")
+
 
 # Worker config
 WORKER_ID = os.getenv("WORKER_ID", "worker-real")
@@ -45,13 +48,12 @@ def ejecutar_brute_range(tarea: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         Diccionario con el resultado si se encuentra un nonce válido, o None en caso de error.
     """
     try:
-        base = tarea["base"]
-        prefix = tarea["prefix"]
+        
         start = str(tarea["range_start"])
         end = str(tarea["range_end"])
         # Ejecuta bash brute_range
         result = subprocess.run(
-            ["./brute_range", base, prefix, start, end],
+            ["./brute_range", BASE, PREFIX, start, end],
             capture_output=True,
             text=True,
             check=True
@@ -78,9 +80,7 @@ def ejecutar_brute_range(tarea: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 def manejar_tarea(ch, method, properties, body: bytes) -> None:
     """Procesa una tarea recibida desde la cola de RabbitMQ."""
     try:
-        logger.info(type(body), body)
         tarea = json.loads(body.decode())
-        logger.info(type(tarea), tarea)
         resultado = ejecutar_brute_range(tarea)
         if resultado:
             ch.basic_publish(

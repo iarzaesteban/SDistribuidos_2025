@@ -16,7 +16,6 @@ RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
 TASK_QUEUE = os.getenv("TASK_QUEUE", "transactions")
 RESULTS_QUEUE = os.getenv("RESULTS_QUEUE", "results")
 
-
 REDIS_CLIENT = redis.Redis(
         host=REDIS_HOST,
         port=REDIS_PORT,
