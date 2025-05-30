@@ -3,7 +3,7 @@ import time
 import json
 import hashlib
 from datetime import datetime
-from utils.redis_client import redis_client
+from utils.redis_client import REDIS_CLIENT
 from utils.rabbitmq_client import publish_task
 from utils.logger import logger
 
@@ -14,12 +14,12 @@ def procesar_pool_de_transacciones():
     while True:
         time.sleep(10)
 
-        total = redis_client.llen("transaction_pool")
+        total = REDIS_CLIENT.llen("transaction_pool")
         if total == 0:
             continue
 
-        transacciones_raw = redis_client.lrange("transaction_pool", 0, -1)
-        redis_client.delete("transaction_pool")
+        transacciones_raw = REDIS_CLIENT.lrange("transaction_pool", 0, -1)
+        REDIS_CLIENT.delete("transaction_pool")
         transacciones = [json.loads(t) for t in transacciones_raw]
 
         dificultad = 4
@@ -42,7 +42,7 @@ def procesar_pool_de_transacciones():
             }
 
             # Marcar que el trabajo completo aún no fue resuelto
-            redis_client.set(f"solved:{job_id}", "0")
+            REDIS_CLIENT.set(f"solved:{job_id}", "0")
 
             publish_task(json.dumps(tarea))
             logger.info(f"Tarea publicada: job_id={job_id}, rango {tarea['range_start']} a {tarea['range_end']} con {len(transacciones)} transacciones.")

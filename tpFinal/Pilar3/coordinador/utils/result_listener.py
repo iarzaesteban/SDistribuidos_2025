@@ -2,7 +2,7 @@ import json
 import threading
 import hashlib
 
-from utils.redis_client import redis_client
+from utils.redis_client import REDIS_CLIENT
 from utils.logger import logger
 from utils.helper import RESULTS_QUEUE, \
                         get_rabbit_connection
@@ -20,7 +20,7 @@ def validar_y_guardar_bloque(ch, method, properties, body):
     job_id = data.get("task_id")
 
     # Evita duplicados: ¿ya se resolvió este job_id?
-    if job_id and redis_client.exists(f"solved:{job_id}"):
+    if job_id and REDIS_CLIENT.exists(f"solved:{job_id}"):
         logger.warning(f"Resultado ignorado: ya se resolvió job_id={job_id}")
         ch.basic_ack(delivery_tag=method.delivery_tag)
         return
@@ -34,21 +34,21 @@ def validar_y_guardar_bloque(ch, method, properties, body):
         logger.warning("Hash no cumple con la dificultad.")
     else:
         # Guardar bloque
-        block_count = int(redis_client.get("block_count") or 0)
-        redis_client.set(f"block:{block_count}", json.dumps({
+        block_count = int(REDIS_CLIENT.get("block_count") or 0)
+        REDIS_CLIENT.set(f"block:{block_count}", json.dumps({
             "previous_hash": tarea["previous_hash"],
             "nonce": nonce,
             "timestamp": tarea["timestamp"],
             "transactions": tarea["transactions"],
             "block_hash": block_hash
         }))
-        redis_client.set("block_count", block_count + 1)
-        redis_client.set("last_block_hash", block_hash)
+        REDIS_CLIENT.set("block_count", block_count + 1)
+        REDIS_CLIENT.set("last_block_hash", block_hash)
         logger.info(f"Bloque #{block_count} guardado correctamente (completo).")
 
         # Marcamos que este job fue resuelto
         if job_id:
-            redis_client.set(f"solved:{job_id}", "1")
+            REDIS_CLIENT.set(f"solved:{job_id}", "1")
             logger.info(f"Eliminada clave de control: solved:{job_id}")
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
