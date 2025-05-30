@@ -1,127 +1,206 @@
-import json
-import hashlib
 import time
 import uuid
-import pika
-import os
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
-from utils.logger import logger
-from utils.helper import get_rabbit_connection, get_redis_connection
+import json
+import hashlib
 from datetime import datetime
 
+from fastapi import APIRouter, HTTPException
+
+from utils.helper import REDIS_CLIENT, Transaction
+from utils.logger import logger
+from utils.rabbitmq_client import get_transactions, publish_task
+from utils.redis_client import get_active_workers
+
 router = APIRouter()
-rabbitmq_queue = os.getenv("RABBITMQ_QUEUE", "transacciones")
-
-class Transaction(BaseModel):
-    id: int
-    amount: float
-    description: str
-
 
 @router.get("/")
 def root():
-    return {"mensaje": f"Hola bebeee"}
+    nombre = REDIS_CLIENT.get("nombre") or "desconocido"
+    return {"mensaje": f"Hola {nombre}"}
+
 
 def generar_hash_dummy():
     return hashlib.sha256(str(datetime.now()).encode()).hexdigest()
 
 
-@router.post("/nombre")
-async def guardar_nombre(nombre: str):
-    redis_conn = get_redis_connection()
-    redis_conn.rpush("nombres", nombre)
-    return {"mensaje": "Nombre guardado en Redis con éxito"}
+@router.get("/status")
+def status():
+    logger.info("Status checked")
 
-@router.get("/nombres")
-async def obtener_nombres():
-    redis_conn = get_redis_connection()
-    nombres = redis_conn.lrange("nombres", 0, -1)
-    return {"nombres": nombres}
+    # Estado de los workers
+    workers = get_active_workers()
 
-
-@router.post("/transaccion")
-def encolar_transaccion(tx: Transaction):
+    # Estado de Redis
     try:
-        connection = get_rabbit_connection()
-        channel = connection.channel()
-
-        channel.queue_declare(queue=rabbitmq_queue, durable=True)
-
-        tx_json = json.dumps(tx.dict())
-        channel.basic_publish(
-            exchange='',
-            routing_key=rabbitmq_queue,
-            body=tx_json,
-            properties=pika.BasicProperties(delivery_mode=2)
-        )
-        channel.close()
-        connection.close()
-
-        return {"mensaje": "Transacción encolada", "transaccion": tx_json}
+        redis_status = "online" if REDIS_CLIENT.ping() else "offline"
     except Exception as e:
-        logger.error(f"Error encolar transacción: {e}")
-        raise HTTPException(status_code=500, detail=f"Error al encolar transacción")
+        redis_status = f"error: {str(e)}"
+
+    # Timestamp actual
+    now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+    return {
+        "status": "ok",
+        "timestamp": now,
+        "redis": redis_status,
+        "workers_active": workers,
+        "workers_count": len(workers)
+    }
+
+@router.post("/sendTransaction")
+def send_transaction(tx: Transaction):
+    REDIS_CLIENT.rpush("transaction_pool", tx.json())
+    return {"message": "Transacción agregada al pool temporal"}
 
 
-@router.get("/transacciones")
-def obtener_transacciones():
-    mensajes = []
-    try:
-        connection = get_rabbit_connection()
-        channel = connection.channel()
-        channel.queue_declare(queue=rabbitmq_queue, durable=True)
+@router.get("/getTransactions")
+def get_all_transactions():
+    messages = get_transactions()
+    return {"transacciones": messages}
 
-        while True:
-            method_frame, _, body = channel.basic_get(queue=rabbitmq_queue, auto_ack=False)
-            if method_frame is None:
-                break
-            mensajes.append(json.loads(body))
-            # Requeue el mensaje (no lo consumimos realmente)
-            channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+@router.delete("/blockchain")
+def eliminar_blockchain():
+    """
+        Elimina todos los bloques almacenados en Redis que tienen claves que comienzan con 'block:'.
 
-        channel.close()
-        connection.close()
-
-        return {"transacciones": mensajes}
-    except Exception as e:
-        logger.error(f"Error al obtener transacciones: {e}")
-        raise HTTPException(status_code=500, detail="Error al obtener transacciones")
+        Busca las claves correspondientes a bloques en Redis (por ejemplo, 'block:1', 'block:2', etc.),
+        y si existen, las elimina. Devuelve un mensaje indicando cuántos bloques fueron eliminados
+        o si no había bloques para eliminar.
+    """
+    claves = REDIS_CLIENT.keys("block:*")
+    if not claves:
+        return {"message": "No hay bloques para eliminar."}
+    REDIS_CLIENT.delete(*claves)
+    return {"message": f"Se eliminaron {len(claves)} bloques de Redis."}
 
 
-@router.post("/transaccion/eliminar")
-def eliminar_transaccion(id: int):
-    nuevos = []
-    try:
-        connection = get_rabbit_connection()
-        channel = connection.channel()
-        channel.queue_declare(queue=rabbitmq_queue, durable=True)
+@router.get("/blockchain")
+def obtener_blockchain():
+    """
+        Recupera y devuelve todos los bloques almacenados en Redis, ordenados por su timestamp.
 
-        while True:
-            method_frame, _, body = channel.basic_get(queue=rabbitmq_queue, auto_ack=False)
-            if body is None:
-                break
-            tx = json.loads(body)
-            if tx["id"] != id:
-                nuevos.append(body)
-            channel.basic_ack(method_frame.delivery_tag)
+        Obtiene la cantidad total de bloques desde la clave 'block_count', luego itera por cada índice
+        para recuperar los bloques individuales almacenados con claves 'block:0', 'block:1', etc.
+        Si se encuentran bloques, se parsean desde JSON, se agregan a una lista, y se ordenan por su
+        campo 'timestamp'. Finalmente, se devuelve la cantidad total y la lista ordenada de bloques.
 
-        # Limpiar la cola
-        channel.queue_delete(queue=rabbitmq_queue)
-        channel.queue_declare(queue=rabbitmq_queue, durable=True)
+        Returns:
+            dict: Un diccionario con dos claves:
+                - "cantidad": número total de bloques recuperados.
+                - "bloques": lista de bloques ordenados por timestamp.
+    """
+    count = int(REDIS_CLIENT.get("block_count") or 0)
+    bloques = []
 
-        for item in nuevos:
-            channel.basic_publish(
-                exchange='',
-                routing_key=rabbitmq_queue,
-                body=item,
-                properties=pika.BasicProperties(delivery_mode=2)
-            )
+    for i in range(count):
+        raw = REDIS_CLIENT.get(f"block:{i}")
+        if raw:
+            bloque = json.loads(raw)
+            bloques.append(bloque)
 
-        channel.close()
-        connection.close()
+    bloques_ordenados = sorted(bloques, key=lambda b: b["timestamp"])
+    return {"cantidad": len(bloques_ordenados), "bloques": bloques_ordenados}
 
-        return {"mensaje": f"Transacción con ID {id} eliminada si existía"}
-    except Exception as e:
-        logger.error(f"Error al eliminar transacción: {e}")
-        raise HTTPException(status_code=500, detail="Error al eliminar transacción")
+
+# Devuelve los workers activos
+@router.get("/workers")
+def list_workers():
+    return {"active_workers": get_active_workers()}
+
+
+@router.post("/mine")
+def mine_block(base: str, prefix: str, total_range: int = 5000000, splits: int = 5):
+    """
+        Publica tareas de minado en una cola RabbitMQ dividiendo el trabajo en subtareas.
+
+        Este endpoint recupera todas las transacciones del pool almacenado en Redis, 
+        las elimina del pool y genera un conjunto de tareas de minado que se dividen 
+        en rangos definidos por los parámetros `total_range` y `splits`. 
+        Cada tarea se publica como un mensaje en una cola de RabbitMQ.
+
+        Args:
+            base (str): Texto base sobre el cual se minará el bloque.
+            prefix (str): Prefijo que debe tener el hash resultante del bloque.
+            total_range (int, optional): Rango total de números a explorar durante el minado. 
+                                        Por defecto es 5,000,000.
+            splits (int, optional): Número de divisiones (tareas) en que se separará el rango total. 
+                                    Por defecto es 5.
+
+        Returns:
+            dict: Un diccionario con el estado de la publicación, el ID del trabajo (`job_id`) 
+                y la cantidad de tareas generadas.
+        
+        Raises:
+            HTTPException: Si no hay transacciones disponibles en el pool para incluir en el bloque.
+    """
+    raw_tx = REDIS_CLIENT.lrange("transaction_pool", 0, -1)
+    if not raw_tx:
+        raise HTTPException(status_code=400, detail="No hay transacciones en el pool")
+
+    transactions = [json.loads(tx) for tx in raw_tx]
+    REDIS_CLIENT.delete("transaction_pool")  # Limpiar el pool después de leer
+
+    job_id = str(uuid.uuid4())
+    step = total_range // splits
+
+    for i in range(splits):
+        start = i * step
+        end = (i + 1) * step if i < splits - 1 else total_range
+
+        task = {
+            "job_id": job_id,
+            "base": base,
+            "prefix": prefix,
+            "range_start": start,
+            "range_end": end,
+            "transactions": transactions
+        }
+
+        publish_task(task)
+
+    return {"status": "published", "job_id": job_id, "tasks": splits}
+
+
+@router.post("/mine_direct")
+def mine_direct(base: str, prefix: str, total_range: int = 5000000, splits: int = 5):
+    """
+        Publica tareas de minado directo en la cola de RabbitMQ sin depender del pool de transacciones.
+
+        Este endpoint genera tareas de minado dividiendo un rango numérico en partes iguales
+        (según el parámetro `splits`) y publica cada tarea directamente en la cola RabbitMQ.
+        A diferencia de `/mine`, utiliza transacciones ficticias y un bloque simulado, 
+        permitiendo pruebas de minado sin datos reales.
+
+        Args:
+            base (str): Texto base sobre el cual se realizará el proceso de minado.
+            prefix (str): Prefijo requerido que debe tener el hash resultante del bloque.
+            total_range (int, optional): Rango total de números a explorar. Por defecto es 5,000,000.
+            splits (int, optional): Cantidad de tareas en que se dividirá el rango. Por defecto es 5.
+
+        Returns:
+            dict: Un diccionario con el estado de la publicación, el `job_id` generado 
+                y la cantidad de tareas creadas.
+    """
+    job_id = str(uuid.uuid4())
+    step = total_range // splits
+
+    for i in range(splits):
+        start = i * step
+        end = (i + 1) * step if i < splits - 1 else total_range
+
+        task = {
+            "job_id": job_id,
+            "base": base,
+            "prefix": prefix,
+            "range_start": start,
+            "range_end": end,
+            "timestamp": "no_timestamp",  # para compatibilidad
+            "transactions": [{"from": "mock", "to": "demo", "amount": 0}],
+            "previous_hash": REDIS_CLIENT.get("last_block_hash") or "0" * 64,
+            "difficulty": len(prefix)
+        }
+
+        logger.info(f"[Direct] Tarea publicada: job_id={job_id}, rango {start} a {end}")
+        publish_task(task)
+
+    return {"status": "published", "job_id": job_id, "tasks": splits}
