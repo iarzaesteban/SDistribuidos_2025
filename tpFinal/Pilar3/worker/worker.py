@@ -115,3 +115,4 @@ if __name__ == "__main__":
         logger.info("Worker detenido manualmente.")
     except Exception as e:
         logger.exception(f"[FATAL] El worker falló al iniciar: {e}")
+ 
