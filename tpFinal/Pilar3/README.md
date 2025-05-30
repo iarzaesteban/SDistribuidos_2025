@@ -148,7 +148,7 @@ kubectl get pods
 - Ver logs
 
 ```bash
-kubectl logs <pod-id>
+kubectl logs <pod-NAME>
 ```
 
 ### Posibles error al ejecutar get pods y no devuelva nada:
@@ -157,4 +157,10 @@ Ejecutar:
 
 ```bash
 gcloud container clusters get-credentials blockchain-cluster --region us-central1 --project blockchainsd2025
+```
+
+### Ingresar a los pods
+
+```bash
+kubectl exec -it <pod-NAME> -- bash
 ```

@@ -73,3 +73,13 @@ def start_result_listener():
 
     t = threading.Thread(target=run, daemon=True)
     t.start()
+
+
+
+{'job_id': 'pool_1748648084.639175', 
+ 'previous_hash': 'a6476ad0dcc8137d7fc29396317d2562c1e6830a04f83fc4e9f4def8aa2c82ab', 
+ 'transactions': [{'id': 1, 'amount': 122000.55, 'description': 'Pago de servicioss'}], 
+ 'difficulty': 4, 
+ 'range_start': 750000, 
+ 'range_end': 999999, 
+ 'timestamp': '2025-05-30T23:34:44.644011'}
