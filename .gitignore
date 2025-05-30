@@ -12,3 +12,4 @@ tpFinal/Pilar3/infra/*.tfstate.*
 tpFinal/Pilar3/infra/.terraform/
 tpFinal/Pilar3/infra/terraform.tfvars
 tpFinal/Pilar3/infra/secrets/
+tpFinal/Pilar3/permissions/rbac-compa.yaml

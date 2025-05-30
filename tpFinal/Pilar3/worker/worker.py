@@ -59,6 +59,7 @@ def ejecutar_brute_range(tarea: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         )
 
         salida = result.stdout.splitlines()
+        logger.info(f"LA SALIDA DE c es: {salida}")
         nonce = next(int(l.split(":")[1].strip()) for l in salida if "Nonce:" in l)
         hash_val = next(l.split(":")[1].strip() for l in salida if "Hash:" in l)
 

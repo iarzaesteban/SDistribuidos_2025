@@ -31,6 +31,8 @@ def validar_y_guardar_bloque(ch, method, properties, body):
             return
 
     raw_data = f"{tarea['previous_hash']}{tarea['transactions']}{nonce}{tarea['timestamp']}"
+    logger.info(f"LA tarea es --->: {tarea}")
+    logger.info(f"LA raw_data es: {raw_data}")
     recalculado = hashlib.sha256(raw_data.encode()).hexdigest()
 
     if recalculado != block_hash:
