@@ -7,7 +7,7 @@ import os
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from utils.logger import logger
-from utils.helper import get_rabbit_connection, get_redis_connection
+from utils.helper import get_rabbit_connection, REDIS_CLIENT
 from datetime import datetime
 
 router = APIRouter()
@@ -29,14 +29,12 @@ def generar_hash_dummy():
 
 @router.post("/nombre")
 async def guardar_nombre(nombre: str):
-    redis_conn = get_redis_connection()
-    redis_conn.rpush("nombres", nombre)
+    REDIS_CLIENT.rpush("nombres", nombre)
     return {"mensaje": "Nombre guardado en Redis con éxito"}
 
 @router.get("/nombres")
 async def obtener_nombres():
-    redis_conn = get_redis_connection()
-    nombres = redis_conn.lrange("nombres", 0, -1)
+    nombres = REDIS_CLIENT.lrange("nombres", 0, -1)
     return {"nombres": nombres}
 
 

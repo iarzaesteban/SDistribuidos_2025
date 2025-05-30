@@ -1,15 +1,13 @@
 import redis
-from utils.helper import get_redis_connection
-
-redis_client = get_redis_connection()
+from utils.helper import REDIS_CLIENT
 
 def get_active_workers():
-    keys = redis_client.keys("heartbeat:*")
+    keys = REDIS_CLIENT.keys("heartbeat:*")
     return [key.split(":")[1] for key in keys]
 
 def ping_redis():
     try:
-        return redis_client.ping()
+        return REDIS_CLIENT.ping()
     except redis.RedisError as e:
         print(f"Redis error: {e}")
         return False
