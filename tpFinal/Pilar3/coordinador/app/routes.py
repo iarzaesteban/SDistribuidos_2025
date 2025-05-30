@@ -78,7 +78,7 @@ def obtener_transacciones():
                 break
             mensajes.append(json.loads(body))
             # Requeue el mensaje (no lo consumimos realmente)
-            channel.basic_nack(delivery_tag=method_frame.delivery_tag, requeue=True)
+            channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
         channel.close()
         connection.close()
