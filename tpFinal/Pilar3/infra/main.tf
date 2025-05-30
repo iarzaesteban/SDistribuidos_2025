@@ -283,3 +283,84 @@ resource "kubernetes_service" "rabbitmq" {
     }
   }
 }
+
+resource "kubernetes_deployment" "worker" {
+  metadata {
+    name = "worker"
+    labels = {
+      app = "worker"
+    }
+  }
+
+  spec {
+    replicas = 1
+    selector {
+      match_labels = {
+        app = "worker"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "worker"
+        }
+      }
+
+      spec {
+        container {
+          name  = "worker"
+          image = var.worker_image
+
+          port {
+            container_port = 22222
+          }
+
+          env_from {
+            config_map_ref {
+              name = kubernetes_config_map.worker_config.metadata[0].name
+            }
+          }
+
+          env_from {
+            secret_ref {
+              name = kubernetes_secret.coordinador_env.metadata[0].name
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_config_map" "worker_config" {
+  metadata {
+    name = "worker-config"
+  }
+
+  data = {
+    REDIS_HOST      = "redis"
+    REDIS_PORT      = "6379"
+    RABBITMQ_HOST   = "rabbitmq"
+    RABBITMQ_PORT   = "5672"
+  }
+}
+
+resource "kubernetes_service" "worker" {
+  metadata {
+    name = "worker-service"
+  }
+
+  spec {
+    selector = {
+      app = "worker"
+    }
+
+    type = "ClusterIP"
+
+    port {
+      port        = 22222
+      target_port = 22222
+    }
+  }
+}

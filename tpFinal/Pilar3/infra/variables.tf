@@ -20,3 +20,9 @@ variable "credentials_file" {
   type        = string
   sensitive   = true
 }
+
+variable "worker_image" {
+  description = "Docker image del worker"
+  type        = string
+  sensitive   = true
+}

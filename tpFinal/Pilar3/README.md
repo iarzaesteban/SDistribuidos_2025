@@ -81,7 +81,7 @@ curl http://<IP>
 
 ## En caso de tener que regenrar la imagen del coordinador
 
-### Usamos tags para la imagen
+### Usamos tags para la imagen del coordinador
 
 - Usamos el último commit como tag único, dentro de infra/
 
@@ -109,4 +109,30 @@ docker build -f coordinador/deploy/Dockerfile -t gcr.io/blockchainsd2025/coordin
 docker push gcr.io/blockchainsd2025/coordinador:$TAG
 ```
 
-## Creamos el pod para redis
+### Usamos tags para la imagen del worker
+
+- Usamos el último commit como tag único, dentro de infra/
+
+```bash
+  TAG=$(git rev-parse --short HEAD)
+```
+
+- Obtenemos el hash del TAG
+
+```bash
+echo "Usando tag: $TAG"
+```
+
+#### El comando anterior nos devolverá un hash que será colocado en el archivo terraform.tfvars indicando el tag de la imagen de docker
+
+-Build con ese tag, desde Pilar3/
+
+```bash
+docker build -f worker/Dockerfile -t gcr.io/blockchainsd2025/worker:$TAG worker
+```
+
+- Push a GCR, desde Pilar3/
+
+```bash
+docker push gcr.io/blockchainsd2025/worker:$TAG
+```
