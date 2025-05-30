@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from tpFinal.Pilar3.coordinador.app.routes import router as nct_router
+from routes import router as nct_router
 from utils.logger import logger
 from utils.result_listener import start_result_listener
 from utils.transaction_pool import start_transaction_pool_manager
