@@ -48,12 +48,11 @@ def ejecutar_brute_range(tarea: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         Diccionario con el resultado si se encuentra un nonce válido, o None en caso de error.
     """
     try:
-        
         start = str(tarea["range_start"])
         end = str(tarea["range_end"])
         # Ejecuta bash brute_range
         result = subprocess.run(
-            ["./brute_range", BASE, PREFIX, start, end],
+            ["./brute_range", str(BASE), str(PREFIX), start, end],
             capture_output=True,
             text=True,
             check=True
