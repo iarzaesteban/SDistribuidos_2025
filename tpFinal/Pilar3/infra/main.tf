@@ -51,13 +51,11 @@ resource "kubernetes_deployment" "coordinador" {
 
   spec {
     replicas = 1
-
     selector {
       match_labels = {
         app = "coordinador"
       }
     }
-
     template {
       metadata {
         labels = {
@@ -67,16 +65,30 @@ resource "kubernetes_deployment" "coordinador" {
 
       spec {
         container {
-            image = var.coordinador_image
-            name  = "coordinador"
-            port {
-                container_port = 11111  
+          image = var.coordinador_image
+          name  = "coordinador"
+
+          port {
+            container_port = 11111
+          }
+
+          env_from {
+            config_map_ref {
+              name = kubernetes_config_map.coordinador_config.metadata[0].name
             }
+          }
+
+          env_from {
+            secret_ref {
+              name = kubernetes_secret.coordinador_env.metadata[0].name
+            }
+          }
         }
       }
     }
   }
 }
+
 
 resource "kubernetes_service" "coordinador" {
   metadata {
@@ -148,6 +160,32 @@ resource "kubernetes_service" "redis" {
       port        = 6379
       target_port = 6379
     }
+  }
+}
+
+resource "kubernetes_secret" "coordinador_env" {
+  metadata {
+    name = "coordinador-secret"
+  }
+
+  data = {
+    REDIS_PASSWORD   = base64encode("")
+    RABBITMQ_USER    = base64encode("admin")
+    RABBITMQ_PASS    = base64encode("admin123")
+    RABBITMQ_QUEUE   = base64encode("transacciones")
+  }
+}
+
+resource "kubernetes_config_map" "coordinador_config" {
+  metadata {
+    name = "coordinador-config"
+  }
+
+  data = {
+    REDIS_HOST      = "redis"
+    REDIS_PORT      = "6379"
+    RABBITMQ_HOST   = "rabbitmq"
+    RABBITMQ_PORT   = "5672"
   }
 }
 
@@ -233,11 +271,13 @@ resource "kubernetes_service" "rabbitmq" {
     }
 
     port {
+      name        = "amqp"
       port        = 5672
       target_port = 5672
     }
 
     port {
+      name        = "management"
       port        = 15672
       target_port = 15672
     }
