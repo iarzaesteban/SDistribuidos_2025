@@ -136,3 +136,25 @@ docker build -f worker/Dockerfile -t gcr.io/blockchainsd2025/worker:$TAG worker
 ```bash
 docker push gcr.io/blockchainsd2025/worker:$TAG
 ```
+
+## Ver pods y logs para seguimiento
+
+- Get pods
+
+```bash
+kubectl get pods
+```
+
+- Ver logs
+
+```bash
+kubectl logs <pod-id>
+```
+
+### Posibles error al ejecutar get pods y no devuelva nada:
+
+Ejecutar:
+
+```bash
+gcloud container clusters get-credentials blockchain-cluster --region us-central1 --project blockchainsd2025
+```

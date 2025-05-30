@@ -9,6 +9,9 @@ from utils.helper import RESULTS_QUEUE, \
 
 
 def cumple_dificultad(hash_str, dificultad):
+    """
+        Verificamos si el hash comienza con cierta cantidad de ceros
+    """
     return hash_str.startswith("0" * dificultad)
 
 

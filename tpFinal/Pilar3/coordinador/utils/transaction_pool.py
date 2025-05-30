@@ -26,7 +26,6 @@ def procesar_pool_de_transacciones():
         rango_total = 1000000
         partes = 4  # Dividimos en 4 tareas
         salto = rango_total // partes
-        timestamp_base = datetime.utcnow().timestamp()
 
         job_id = f"pool_{datetime.utcnow().timestamp():.6f}"
 
@@ -44,7 +43,7 @@ def procesar_pool_de_transacciones():
             # Marcar que el trabajo completo aún no fue resuelto
             REDIS_CLIENT.set(f"solved:{job_id}", "0")
 
-            publish_task(json.dumps(tarea))
+            publish_task(tarea)
             logger.info(f"Tarea publicada: job_id={job_id}, rango {tarea['range_start']} a {tarea['range_end']} con {len(transacciones)} transacciones.")
 
 
