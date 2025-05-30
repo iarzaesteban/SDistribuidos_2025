@@ -150,3 +150,96 @@ resource "kubernetes_service" "redis" {
     }
   }
 }
+
+
+resource "kubernetes_secret" "rabbitmq" {
+  metadata {
+    name = "rabbitmq-secret"
+  }
+
+  data = {
+    rabbitmq-username = base64encode("admin")
+    rabbitmq-password = base64encode("admin123")
+  }
+}
+
+resource "kubernetes_deployment" "rabbitmq" {
+  metadata {
+    name = "rabbitmq"
+    labels = {
+      app = "rabbitmq"
+    }
+  }
+
+  spec {
+    replicas = 1
+    selector {
+      match_labels = {
+        app = "rabbitmq"
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          app = "rabbitmq"
+        }
+      }
+      spec {
+        container {
+          name  = "rabbitmq"
+          image = "rabbitmq:3-management"
+
+          env {
+            name = "RABBITMQ_DEFAULT_USER"
+            value_from {
+              secret_key_ref {
+                name = kubernetes_secret.rabbitmq.metadata[0].name
+                key  = "rabbitmq-username"
+              }
+            }
+          }
+
+          env {
+            name = "RABBITMQ_DEFAULT_PASS"
+            value_from {
+              secret_key_ref {
+                name = kubernetes_secret.rabbitmq.metadata[0].name
+                key  = "rabbitmq-password"
+              }
+            }
+          }
+
+          port {
+            container_port = 5672
+          }
+
+          port {
+            container_port = 15672
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service" "rabbitmq" {
+  metadata {
+    name = "rabbitmq"
+  }
+
+  spec {
+    selector = {
+      app = "rabbitmq"
+    }
+
+    port {
+      port        = 5672
+      target_port = 5672
+    }
+
+    port {
+      port        = 15672
+      target_port = 15672
+    }
+  }
+}
