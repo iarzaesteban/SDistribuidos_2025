@@ -29,12 +29,14 @@ def generar_hash_dummy():
 
 @router.post("/nombre")
 async def guardar_nombre(nombre: str):
-    get_redis_connection.rpush("nombres", nombre)
+    redis_conn = get_redis_connection()
+    redis_conn.rpush("nombres", nombre)
     return {"mensaje": "Nombre guardado en Redis con éxito"}
 
 @router.get("/nombres")
 async def obtener_nombres():
-    nombres = get_redis_connection.lrange("nombres", 0, -1)
+    redis_conn = get_redis_connection()
+    nombres = redis_conn.lrange("nombres", 0, -1)
     return {"nombres": nombres}
 
 
