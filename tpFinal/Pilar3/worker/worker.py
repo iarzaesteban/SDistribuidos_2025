@@ -78,7 +78,9 @@ def ejecutar_brute_range(tarea: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 def manejar_tarea(ch, method, properties, body: bytes) -> None:
     """Procesa una tarea recibida desde la cola de RabbitMQ."""
     try:
+        logger.info(type(body), body)
         tarea = json.loads(body.decode())
+        logger.info(type(tarea), tarea)
         resultado = ejecutar_brute_range(tarea)
         if resultado:
             ch.basic_publish(

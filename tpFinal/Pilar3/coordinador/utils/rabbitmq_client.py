@@ -23,4 +23,4 @@ def get_transactions():
 
 def publish_task(task_data):
     print(f"Publicando tarea: {task_data}")
-    rabbit_client.publish(json.dumps(task_data))
+    rabbit_client.publish(task_data)

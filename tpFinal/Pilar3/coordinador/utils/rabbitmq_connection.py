@@ -1,4 +1,4 @@
-import pika
+import json
 from utils.helper import connect_with_retry
 
 class RabbitMQClient:
@@ -9,6 +9,8 @@ class RabbitMQClient:
         self.channel.queue_declare(queue=self.queue_name)
 
     def publish(self, body, exchange=''):
+        if isinstance(body, dict):
+            body = json.dumps(body)
         self.channel.basic_publish(
             exchange=exchange,
             routing_key=self.queue_name,
