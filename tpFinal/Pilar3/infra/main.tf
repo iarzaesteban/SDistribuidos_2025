@@ -12,19 +12,18 @@ provider "kubernetes" {
 
 data "google_client_config" "default" {}
 
-resource "google_container_cluster" "primary" {
-  name               = "blockchain-cluster"
-  location           = var.region
-  initial_node_count = 1
-  deletion_protection = false
 
-  node_config {
-    machine_type = "e2-medium"
-    oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform",
-    ]
-    disk_size_gb = 50
-  }
+resource "google_container_cluster" "primary" {
+  name     = "blockchain-cluster"
+  location = var.region
+
+  remove_default_node_pool = true
+  initial_node_count       = 1
+  network    = "default"
+  subnetwork = "default"
+
+  ip_allocation_policy {}
+  deletion_protection = false
 }
 
 resource "google_container_node_pool" "primary_nodes" {
@@ -40,6 +39,74 @@ resource "google_container_node_pool" "primary_nodes" {
     disk_size_gb = 50
   }
 }
+
+resource "google_container_node_pool" "infra_pool" {
+  name       = "infra-pool"
+  location   = var.region
+  cluster    = google_container_cluster.primary.name
+  node_count = 2
+
+  node_config {
+    machine_type = "e2-standard-2"
+    oauth_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+    disk_size_gb = 50
+  }
+
+  management {
+    auto_repair  = true
+    auto_upgrade = true
+  }
+}
+
+resource "google_container_node_pool" "app_pool" {
+  name     = "app-pool"
+  location = var.region
+  cluster  = google_container_cluster.primary.name
+
+  autoscaling {
+    min_node_count = 2
+    max_node_count = 4
+  }
+
+  node_config {
+    machine_type = "e2-small"
+    oauth_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+    disk_size_gb = 30
+  }
+
+  management {
+    auto_repair  = true
+    auto_upgrade = true
+  }
+}
+
+resource "google_container_node_pool" "gpu_pool" {
+  name     = "gpu-pool"
+  location = var.region
+  cluster  = google_container_cluster.primary.name
+
+  node_config {
+    machine_type = "n1-standard-4"
+    guest_accelerator {
+      type  = "nvidia-tesla-k80"
+      count = 1
+    }
+
+    oauth_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+    disk_size_gb = 50
+    image_type   = "COS_CONTAINERD"
+
+    tags = ["gpu-node"]
+  }
+
+  management {
+    auto_upgrade = true
+    auto_repair  = true
+  }
+
+  node_locations = [var.region] # zona específica si lo deseas
+}
+
 
 resource "kubernetes_deployment" "coordinador" {
   metadata {
