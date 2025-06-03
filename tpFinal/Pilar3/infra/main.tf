@@ -1,3 +1,11 @@
+#############################
+#  main.tf - Proyecto Pilar 3
+#############################
+
+#########################
+#  1) Providers & Data  #
+#########################
+
 provider "google" {
   credentials = file(var.credentials_file)
   project     = var.project
@@ -12,6 +20,9 @@ provider "kubernetes" {
 
 data "google_client_config" "default" {}
 
+############################
+#  2) GKE Cluster & Pools  #
+############################
 
 resource "google_container_cluster" "primary" {
   name     = "blockchain-cluster"
@@ -19,13 +30,14 @@ resource "google_container_cluster" "primary" {
 
   remove_default_node_pool = true
   initial_node_count       = 1
-  network    = "default"
-  subnetwork = "default"
+  network                  = "default"
+  subnetwork               = "default"
 
   ip_allocation_policy {}
   deletion_protection = false
 }
 
+# Nodo “por defecto” (sin GPU)
 resource "google_container_node_pool" "primary_nodes" {
   cluster    = google_container_cluster.primary.name
   location   = var.region
@@ -40,6 +52,7 @@ resource "google_container_node_pool" "primary_nodes" {
   }
 }
 
+# Pool de infraestructura (RabbitMQ + Redis)
 resource "google_container_node_pool" "infra_pool" {
   name       = "infra-pool"
   location   = var.region
@@ -58,6 +71,7 @@ resource "google_container_node_pool" "infra_pool" {
   }
 }
 
+# Pool de aplicaciones (frontend, backend, split/joiner, workers mock)
 resource "google_container_node_pool" "app_pool" {
   name     = "app-pool"
   location = var.region
@@ -80,33 +94,42 @@ resource "google_container_node_pool" "app_pool" {
   }
 }
 
-resource "google_container_node_pool" "gpu_pool" {
-  name     = "gpu-pool"
-  location = var.region
-  cluster  = google_container_cluster.primary.name
+# Pool GPU (comentado temporalmente para no bloquear el apply)
+# resource "google_container_node_pool" "gpu_pool" {
+#   name           = "gpu-pool"
+#   cluster        = google_container_cluster.primary.name
+#   location       = var.region
+#   node_locations = ["southamerica-east1-a"]
+#   node_count     = 1
 
-  node_config {
-    machine_type = "n1-standard-4"
-    guest_accelerator {
-      type  = "nvidia-tesla-k80"
-      count = 1
-    }
+#   node_config {
+#     machine_type = "n1-standard-1"
+#     preemptible  = true
 
-    oauth_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
-    disk_size_gb = 50
-    image_type   = "COS_CONTAINERD"
+#     metadata = {
+#       "install-nvidia-driver" = "true"
+#     }
 
-    tags = ["gpu-node"]
-  }
+#     oauth_scopes = [
+#       "https://www.googleapis.com/auth/logging.write",
+#       "https://www.googleapis.com/auth/monitoring",
+#     ]
 
-  management {
-    auto_upgrade = true
-    auto_repair  = true
-  }
+#     guest_accelerator {
+#       type  = "nvidia-tesla-t4"
+#       count = 1
+#     }
+#   }
 
-  node_locations = [var.region] # zona específica si lo deseas
-}
+#   management {
+#     auto_repair  = true
+#     auto_upgrade = true
+#   }
+# }
 
+########################################
+#  3) Coordinador (Deployment + Service)
+########################################
 
 resource "kubernetes_deployment" "coordinador" {
   metadata {
@@ -118,6 +141,7 @@ resource "kubernetes_deployment" "coordinador" {
 
   spec {
     replicas = 1
+
     selector {
       match_labels = {
         app = "coordinador"
@@ -129,11 +153,10 @@ resource "kubernetes_deployment" "coordinador" {
           app = "coordinador"
         }
       }
-
       spec {
         container {
-          image = var.coordinador_image
           name  = "coordinador"
+          image = var.coordinador_image
 
           port {
             container_port = 11111
@@ -156,19 +179,15 @@ resource "kubernetes_deployment" "coordinador" {
   }
 }
 
-
 resource "kubernetes_service" "coordinador" {
   metadata {
     name = "coordinador-service"
   }
-
   spec {
     selector = {
       app = "coordinador"
     }
-
     type = "LoadBalancer"
-
     port {
       port        = 80
       target_port = 11111
@@ -176,53 +195,23 @@ resource "kubernetes_service" "coordinador" {
   }
 }
 
-resource "kubernetes_deployment" "redis" {
+####################################
+#  4) Redis (StatefulSet + Headless Service)
+####################################
+
+# Headless Service para Redis StatefulSet
+resource "kubernetes_service" "redis_headless" {
   metadata {
-    name = "redis"
+    name = "redis-headless"
     labels = {
       app = "redis"
     }
   }
-
   spec {
-    replicas = 1
-
-    selector {
-      match_labels = {
-        app = "redis"
-      }
-    }
-
-    template {
-      metadata {
-        labels = {
-          app = "redis"
-        }
-      }
-
-      spec {
-        container {
-          name  = "redis"
-          image = "redis:7.0-alpine"
-          port {
-            container_port = 6379
-          }
-        }
-      }
-    }
-  }
-}
-
-resource "kubernetes_service" "redis" {
-  metadata {
-    name = "redis"
-  }
-
-  spec {
+    cluster_ip = "None"
     selector = {
       app = "redis"
     }
-
     port {
       port        = 6379
       target_port = 6379
@@ -230,16 +219,142 @@ resource "kubernetes_service" "redis" {
   }
 }
 
+# StatefulSet para Redis con volumeClaimTemplates
+resource "kubernetes_stateful_set" "redis" {
+  metadata {
+    name = "redis"
+    labels = {
+      app = "redis"
+    }
+  }
+
+  spec {
+    service_name = "redis-headless"
+    replicas     = 2
+
+    selector {
+      match_labels = {
+        app = "redis"
+      }
+    }
+
+    # =========================
+    # Aquí va el template de Pod
+    # =========================
+    template {
+      metadata {
+        labels = {
+          app = "redis"
+        }
+      }
+      spec {
+        # ─── Anti‐Affinity para que no programen ambas réplicas en el mismo nodo ───
+        affinity {
+          pod_anti_affinity {
+            required_during_scheduling_ignored_during_execution {
+              label_selector {
+                match_labels = {
+                  app = "redis"
+                }
+              }
+              topology_key = "kubernetes.io/hostname"
+            }
+          }
+        }
+
+        # ─── Contenedor de Redis ──────────────────────────────────────────────────
+        container {
+          name  = "redis"
+          image = "redis:7.0-alpine"
+          args  = ["redis-server", "/usr/local/etc/redis/redis.conf"]
+
+          port {
+            container_port = 6379
+          }
+
+          # Montaje del ConfigMap con redis.conf
+          volume_mount {
+            name       = "config"
+            mount_path = "/usr/local/etc/redis"
+          }
+
+          # Montaje del volumen de datos (PVC)
+          volume_mount {
+            name       = "data"
+            mount_path = "/data"
+          }
+
+          # ─── Readiness Probe ─────────────────────────────────────────────────────
+          readiness_probe {
+            exec {
+              command = ["redis-cli", "ping"]
+            }
+            initial_delay_seconds = 5
+            period_seconds        = 10
+          }
+
+          # ─── Liveness Probe ──────────────────────────────────────────────────────
+          liveness_probe {
+            exec {
+              command = ["redis-cli", "ping"]
+            }
+            initial_delay_seconds = 15
+            period_seconds        = 20
+            failure_threshold     = 3
+          }
+          # ──────────────────────────────────────────────────────────────────────────
+        }
+
+        # ─── Aquí van los volúmenes que monta el Pod (ej. ConfigMap) ──────────────
+        volume {
+          name = "config"
+          config_map {
+            name = kubernetes_config_map.redis_conf.metadata[0].name
+            items {
+              key  = "redis.conf"
+              path = "redis.conf"
+            }
+          }
+        }
+        # Nota: NO coloques volume_claim_template aquí; va en el nivel superior
+      }
+    }
+
+    # =============================
+    # Aquí va el volume_claim_template
+    # =============================
+    volume_claim_template {
+      metadata {
+        name = "data"
+      }
+      spec {
+        access_modes = ["ReadWriteOnce"]
+        resources {
+          requests = {
+            storage = "20Gi"
+          }
+        }
+        storage_class_name = kubernetes_storage_class.zonal_ssd.metadata[0].name
+      }
+    }
+  }
+}
+
+
+
+##########################################
+#  5) Secret & ConfigMap para Coordinador #
+##########################################
+
 resource "kubernetes_secret" "coordinador_env" {
   metadata {
     name = "coordinador-secret"
   }
-
   data = {
-    REDIS_PASSWORD   = base64encode("")
-    RABBITMQ_USER    = base64encode("admin")
-    RABBITMQ_PASS    = base64encode("admin123")
-    RABBITMQ_QUEUE   = base64encode("transacciones")
+    REDIS_PASSWORD = base64encode("")
+    RABBITMQ_USER  = base64encode("admin")
+    RABBITMQ_PASS  = base64encode("admin123")
+    RABBITMQ_QUEUE = base64encode("transacciones")
   }
 }
 
@@ -247,109 +362,151 @@ resource "kubernetes_config_map" "coordinador_config" {
   metadata {
     name = "coordinador-config"
   }
-
   data = {
-    REDIS_HOST      = "redis"
-    REDIS_PORT      = "6379"
-    RABBITMQ_HOST   = "rabbitmq"
-    RABBITMQ_PORT   = "5672"
+    REDIS_HOST    = "redis-headless"
+    REDIS_PORT    = "6379"
+    RABBITMQ_HOST = "rabbitmq-headless"
+    RABBITMQ_PORT = "5672"
   }
 }
 
+########################################
+#  6) RabbitMQ Secret (necesario para StatefulSet)
+########################################
 
 resource "kubernetes_secret" "rabbitmq" {
   metadata {
     name = "rabbitmq-secret"
   }
-
   data = {
     rabbitmq-username = base64encode("admin")
     rabbitmq-password = base64encode("admin123")
   }
 }
 
-resource "kubernetes_deployment" "rabbitmq" {
-  metadata {
-    name = "rabbitmq"
-    labels = {
-      app = "rabbitmq"
-    }
-  }
+########################################
+#  7) RabbitMQ antiguo (Deployment + Service) [Comentado]
+########################################
 
-  spec {
-    replicas = 1
-    selector {
-      match_labels = {
-        app = "rabbitmq"
-      }
-    }
-    template {
-      metadata {
-        labels = {
-          app = "rabbitmq"
-        }
-      }
-      spec {
-        container {
-          name  = "rabbitmq"
-          image = "rabbitmq:3-management"
+# resource "kubernetes_deployment" "rabbitmq" {
+#   metadata {
+#     name = "rabbitmq"
+#     labels = {
+#       app = "rabbitmq"
+#     }
+#   }
+#
+#   spec {
+#     replicas = 1
+#
+#     selector {
+#       match_labels = {
+#         app = "rabbitmq"
+#       }
+#     }
+#
+#     template {
+#       metadata {
+#         labels = {
+#           app = "rabbitmq"
+#         }
+#       }
+#
+#       spec {
+#         container {
+#           name  = "rabbitmq"
+#           image = "rabbitmq:3-management"
+#
+#           volume_mount {
+#             name       = "rabbitmq-config-volume"
+#             mount_path = "/etc/rabbitmq"
+#           }
+#
+#           volume_mount {
+#             name       = "rabbitmq-data-volume"
+#             mount_path = "/var/lib/rabbitmq"
+#           }
+#
+#           env {
+#             name = "RABBITMQ_DEFAULT_USER"
+#             value_from {
+#               secret_key_ref {
+#                 name = kubernetes_secret.rabbitmq.metadata[0].name
+#                 key  = "rabbitmq-username"
+#               }
+#             }
+#           }
+#
+#           env {
+#             name = "RABBITMQ_DEFAULT_PASS"
+#             value_from {
+#               secret_key_ref {
+#                 name = kubernetes_secret.rabbitmq.metadata[0].name
+#                 key  = "rabbitmq-password"
+#               }
+#             }
+#           }
+#
+#           port {
+#             container_port = 5672
+#           }
+#
+#           port {
+#             container_port = 15672
+#           }
+#         }
+#
+#         volume {
+#           name = "rabbitmq-config-volume"
+#           config_map {
+#             name = kubernetes_config_map.rabbitmq_conf.metadata[0].name
+#             items {
+#               key  = "rabbitmq.conf"
+#               path = "rabbitmq.conf"
+#             }
+#           }
+#         }
+#
+#         volume {
+#           name = "rabbitmq-data-volume"
+#           persistent_volume_claim {
+#             claim_name = kubernetes_persistent_volume_claim.rabbitmq_pvc.metadata[0].name
+#           }
+#         }
+#       }
+#     }
+#   }
+# }
+#
+# resource "kubernetes_service" "rabbitmq" {
+#   metadata {
+#     name = "rabbitmq"
+#   }
+#
+#   spec {
+#     selector = {
+#       app = "rabbitmq"
+#     }
+#
+#     port {
+#       name        = "amqp"
+#       port        = 5672
+#       target_port = 5672
+#     }
+#
+#     port {
+#       name        = "management"
+#       port        = 15672
+#       target_port = 15672
+#     }
+#
+#     type = "ClusterIP"
+#   }
+# }
 
-          env {
-            name = "RABBITMQ_DEFAULT_USER"
-            value_from {
-              secret_key_ref {
-                name = kubernetes_secret.rabbitmq.metadata[0].name
-                key  = "rabbitmq-username"
-              }
-            }
-          }
-
-          env {
-            name = "RABBITMQ_DEFAULT_PASS"
-            value_from {
-              secret_key_ref {
-                name = kubernetes_secret.rabbitmq.metadata[0].name
-                key  = "rabbitmq-password"
-              }
-            }
-          }
-
-          port {
-            container_port = 5672
-          }
-
-          port {
-            container_port = 15672
-          }
-        }
-      }
-    }
-  }
-}
-
-resource "kubernetes_service" "rabbitmq" {
-  metadata {
-    name = "rabbitmq"
-  }
-
-  spec {
-    selector = {
-      app = "rabbitmq"
-    }
-
-    port {
-      name        = "amqp"
-      port        = 5672
-      target_port = 5672
-    }
-
-    port {
-      name        = "management"
-      port        = 15672
-      target_port = 15672
-    }
-  }
-}
+#############################################
+#  8) Worker (Deployment + Service) [Comentado]
+#############################################
 
 resource "kubernetes_deployment" "worker" {
   metadata {
@@ -361,6 +518,7 @@ resource "kubernetes_deployment" "worker" {
 
   spec {
     replicas = 1
+
     selector {
       match_labels = {
         app = "worker"
@@ -378,6 +536,18 @@ resource "kubernetes_deployment" "worker" {
         container {
           name  = "worker"
           image = var.worker_image
+
+          # --- Bloque de recursos para que HPA mida CPU ---
+          resources {
+            requests = {
+              cpu    = "200m"
+              memory = "256Mi"
+            }
+            limits = {
+              cpu    = "500m"
+              memory = "512Mi"
+            }
+          }
 
           port {
             container_port = 22222
@@ -400,18 +570,6 @@ resource "kubernetes_deployment" "worker" {
   }
 }
 
-resource "kubernetes_config_map" "worker_config" {
-  metadata {
-    name = "worker-config"
-  }
-
-  data = {
-    REDIS_HOST      = "redis"
-    REDIS_PORT      = "6379"
-    RABBITMQ_HOST   = "rabbitmq"
-    RABBITMQ_PORT   = "5672"
-  }
-}
 
 resource "kubernetes_service" "worker" {
   metadata {
