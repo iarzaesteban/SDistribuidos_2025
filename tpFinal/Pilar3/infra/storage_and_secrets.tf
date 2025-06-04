@@ -1,5 +1,5 @@
 ####################################
-#  A) PVC para Redis               #
+#  A) PVC para Redis (si lo necesitás)
 ####################################
 # resource "kubernetes_persistent_volume_claim" "redis_pvc" {
 #   metadata {
@@ -14,14 +14,13 @@
 #       }
 #     }
 #     storage_class_name = "standard"
-#     # Reemplazá "standard" por el nombre de tu StorageClass regional SSD si lo tenés;
-#     #   si no, deja "standard" o comenta esta línea para usar la SC por defecto.
+#     # Reemplazá "standard" por tu StorageClass si usás SSD regional.
 #   }
 # }
 
 
 ####################################
-#  C) PVC para RabbitMQ            #
+#  B) PVC para RabbitMQ
 ####################################
 resource "kubernetes_persistent_volume_claim" "rabbitmq_pvc" {
   metadata {
@@ -36,21 +35,45 @@ resource "kubernetes_persistent_volume_claim" "rabbitmq_pvc" {
       }
     }
     storage_class_name = "standard"
-    # ↑ Si tenés una SC SSD regional distinta, reemplazá "standard" por su nombre.
+    # Si tenés una SC SSD regional distinta, reemplazá "standard" por su nombre.
   }
 }
 
+
 ###########################################
-#  ConfigMap para el worker (worker_config)
+#  C) ConfigMap para el worker (worker_config)
 ###########################################
 resource "kubernetes_config_map" "worker_config" {
   metadata {
-    name = "worker-config"
+    name      = "worker-config"
+    namespace = "default"
   }
   data = {
-    REDIS_HOST    = "redis-headless"
-    REDIS_PORT    = "6379"
-    RABBITMQ_HOST = "rabbitmq-headless"
-    RABBITMQ_PORT = "5672"
+    REDIS_HOST        = "redis-headless"
+    REDIS_PORT        = "6379"
+    RABBITMQ_HOST     = "rabbitmq-headless"
+    RABBITMQ_PORT     = "5672"
+    TIMEOUT_RONDA_SET = "5"
+    MAX_COINS         = "100"
+  }
+}
+
+
+###########################################
+#  D) Secret con variables del coordinador
+###########################################
+resource "kubernetes_secret" "coordinador_secret" {
+  metadata {
+    name      = "coordinador-secret"
+    namespace = "default"
+  }
+
+  type = "Opaque"
+
+  data = {
+    COORDINADOR_HOST = base64encode("coordinador-service.default.svc.cluster.local")
+    COORDINADOR_PORT = base64encode("8000")
+    # Si tenés otras variables sensibles para el worker, agregalas acá:
+    # EJEMPLO_VAR_SENSIBLE = base64encode("valor")
   }
 }

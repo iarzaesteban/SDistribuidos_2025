@@ -170,7 +170,7 @@ resource "kubernetes_deployment" "coordinador" {
 
           env_from {
             secret_ref {
-              name = kubernetes_secret.coordinador_env.metadata[0].name
+              name = kubernetes_secret.coordinador_secret.metadata[0].name
             }
           }
         }
@@ -344,19 +344,7 @@ resource "kubernetes_stateful_set" "redis" {
 
 ##########################################
 #  5) Secret & ConfigMap para Coordinador #
-##########################################
-
-resource "kubernetes_secret" "coordinador_env" {
-  metadata {
-    name = "coordinador-secret"
-  }
-  data = {
-    REDIS_PASSWORD = base64encode("")
-    RABBITMQ_USER  = base64encode("admin")
-    RABBITMQ_PASS  = base64encode("admin123")
-    EARRING_QUEUE = base64encode("earrings")
-  }
-}
+#########################################
 
 resource "kubernetes_config_map" "coordinador_config" {
   metadata {
@@ -561,7 +549,7 @@ resource "kubernetes_deployment" "worker" {
 
           env_from {
             secret_ref {
-              name = kubernetes_secret.coordinador_env.metadata[0].name
+              name = kubernetes_secret.coordinador_secret.metadata[0].name
             }
           }
         }

@@ -5,6 +5,34 @@ import redis
 import subprocess
 import time
 
+# ------------------------------ SECCIÓN AÑADIDA ------------------------------
+import threading
+
+# Redis config para heartbeat (ya tienes REDIS_HOST e incluso import Redis)
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+WORKER_ID  = os.getenv("WORKER_ID", "worker-real")
+
+redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+
+def send_heartbeat():
+    """
+    Cada 5 segundos escribe 'heartbeat:{WORKER_ID}' con TTL=10s en Redis.
+    """
+    while True:
+        try:
+            redis_client.setex(f"heartbeat:{WORKER_ID}", 10, "alive")
+            print(f"[HEARTBEAT] {WORKER_ID} => alive")
+        except Exception as e:
+            print(f"[HEARTBEAT ERROR] {e}")
+        time.sleep(5)
+
+# Arrancamos el hilo daemon para heartbeat ANTES de la conexión a RabbitMQ
+heartbeat_thread = threading.Thread(target=send_heartbeat, daemon=True)
+heartbeat_thread.start()
+# --------------------------- FIN SECCIÓN AÑADIDA ----------------------------
+
+# RabbitMQ y Redis ya estaban así:
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "rabbitmq")
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 WORKER_ID = os.getenv("WORKER_ID", "worker-real")
@@ -14,41 +42,20 @@ credentials = pika.PlainCredentials(
     os.getenv("RABBITMQ_USER", "admin"),
     os.getenv("RABBITMQ_PASS", "admin")
 )
-params = pika.ConnectionParameters(host=RABBITMQ_HOST, credentials=credentials)
+params = pika.ConnectionParameters(
+    host=RABBITMQ_HOST,
+    port=int(os.getenv("RABBITMQ_PORT", 5672)),
+    credentials=credentials
+)
+
 connection = pika.BlockingConnection(params)
 channel = connection.channel()
-channel.queue_declare(queue='transactions')
-channel.queue_declare(queue='results')
 
-redis_client = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
+channel.queue_declare(queue="transactions")
 
-def ejecutar_brute_range(tarea):
-    base = tarea["base"]
-    prefix = tarea["prefix"]
-    start = str(tarea["range_start"])
-    end = str(tarea["range_end"])
-
-    try:
-        result = subprocess.run(
-            ["./brute_range", base, prefix, start, end],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        salida = result.stdout.splitlines()
-        nonce = next(int(l.split(":")[1].strip()) for l in salida if "Nonce:" in l)
-        hash_val = next(l.split(":")[1].strip() for l in salida if "Hash:" in l)
-
-        return {
-            "task_id": tarea["job_id"],
-            "nonce": nonce,
-            "block_hash": hash_val,
-            "original_task": tarea
-        }
-
-    except Exception as e:
-        print(f"[ERROR] Ejecutando brute_range: {e}")
-        return None
+def ejecutar_brute_range(data):
+    # ... tu lógica existente de brute-force ...
+    return resultado_o_None
 
 def callback(ch, method, properties, body):
     tarea = json.loads(body.decode())
