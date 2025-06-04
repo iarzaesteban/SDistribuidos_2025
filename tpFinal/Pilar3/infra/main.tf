@@ -354,7 +354,7 @@ resource "kubernetes_secret" "coordinador_env" {
     REDIS_PASSWORD = base64encode("")
     RABBITMQ_USER  = base64encode("admin")
     RABBITMQ_PASS  = base64encode("admin123")
-    RABBITMQ_QUEUE = base64encode("transacciones")
+    EARRING_QUEUE = base64encode("earrings")
   }
 }
 

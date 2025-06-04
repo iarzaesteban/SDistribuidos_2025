@@ -10,8 +10,6 @@ app = FastAPI(title="Nodo Coordinador (NCT)")
 def startup_event():
     logger.info("NCT Service started")
     try:
-        start_result_listener()
-        start_transaction_pool_manager()
         logger.info("NCT Service started sussefully")
     except Exception as e:
         logger.error(f"Error al correr el coordinado: {e}")

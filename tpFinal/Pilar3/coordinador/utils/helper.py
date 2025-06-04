@@ -13,8 +13,8 @@ RABBITMQ_USER = os.getenv("RABBITMQ_USER")
 RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASS")
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
 RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
-TASK_QUEUE = os.getenv("TASK_QUEUE", "transactions")
-RESULTS_QUEUE = os.getenv("RESULTS_QUEUE", "results")
+EARRING_QUEUE = os.getenv("EARRING_QUEUE", "earrings") # Cola pendietes
+IN_PROGRESS_QUEUE = os.getenv("IN_PROGRESS_QUEUE", "in_progress")  # Cola En Curso  
 
 REDIS_CLIENT = redis.Redis(
         host=REDIS_HOST,

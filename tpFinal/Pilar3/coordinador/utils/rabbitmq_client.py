@@ -1,8 +1,8 @@
 import json
 from utils.rabbitmq_connection import RabbitMQClient
-from utils.helper import TASK_QUEUE
+from utils.helper import EARRING_QUEUE
 
-rabbit_client = RabbitMQClient(queue_name=TASK_QUEUE)
+rabbit_client = RabbitMQClient(queue_name=EARRING_QUEUE)
 
 def get_transactions():
     messages = []
@@ -12,7 +12,7 @@ def get_transactions():
         ch.basic_ack(method.delivery_tag)
 
     # Consume con timeout para evitar bloqueo infinito
-    for method_frame, properties, body in rabbit_client.channel.consume(TASK_QUEUE, inactivity_timeout=1):
+    for method_frame, properties, body in rabbit_client.channel.consume(EARRING_QUEUE, inactivity_timeout=1):
         if method_frame is None:
             break
         messages.append(body.decode())

@@ -14,8 +14,8 @@ RABBITMQ_USER = os.getenv("RABBITMQ_USER")
 RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASS")
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
 RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
-TASK_QUEUE = os.getenv("TASK_QUEUE", "transactions")
-RESULTS_QUEUE = os.getenv("RESULTS_QUEUE", "results")
+EARRING_QUEUE = os.getenv("EARRING_QUEUE", "earning")
+IN_PROGRESS_QUEUE = os.getenv("IN_PROGRESS_QUEUE", "in_progress")
 BASE = int(os.getenv("BASE", "16"))
 PREFIX = os.getenv("PREFIX", "0000")
 
@@ -86,7 +86,7 @@ def manejar_tarea(ch, method, properties, body: bytes) -> None:
         if resultado:
             ch.basic_publish(
                 exchange='',
-                routing_key=RESULTS_QUEUE,
+                routing_key=IN_PROGRESS_QUEUE,
                 body=json.dumps(resultado)
             )
             logger.info(f"[OK] Resultado enviado: nonce={resultado['nonce']} hash={resultado['block_hash']}")
@@ -103,14 +103,14 @@ def iniciar_worker() -> None:
     connection = get_rabbit_connection()
     channel = connection.channel()
 
-    channel.queue_declare(queue=TASK_QUEUE)
-    channel.queue_declare(queue=RESULTS_QUEUE)
+    channel.queue_declare(queue=EARRING_QUEUE)
+    channel.queue_declare(queue=IN_PROGRESS_QUEUE)
 
     logger.info(f"[{WORKER_ID}] Worker en espera de tareas...")
     
     #channel.basic_qos(prefetch_count=1)  # Para que no tome más de una tarea simultáneamente
 
-    channel.basic_consume(queue=TASK_QUEUE, on_message_callback=manejar_tarea)
+    channel.basic_consume(queue=EARRING_QUEUE, on_message_callback=manejar_tarea)
     channel.start_consuming()
 
 

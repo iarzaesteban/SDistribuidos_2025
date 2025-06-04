@@ -1,64 +1,44 @@
-import pika
-import time
-import os
 import json
+from utils.rabbitmq_connection import RabbitMQClient
+from utils.helper import EARRING_QUEUE, MONITORING_IN_PROGRESS_QUEUE
 
-RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
-RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
-RABBITMQ_USER = os.getenv("RABBITMQ_USER", "guest")
-RABBITMQ_PASS = os.getenv("RABBITMQ_PASS", "guest")
-RABBITMQ_QUEUE = os.getenv("RABBITMQ_QUEUE", "transactions")
-TASK_QUEUE = "transactions"
+rabbit_client_earring = RabbitMQClient(queue_name=EARRING_QUEUE)
+rabbit_client_monitoring = RabbitMQClient(queue_name=MONITORING_IN_PROGRESS_QUEUE)
 
-def connect_with_retry(retries=10, delay=5):
-    for i in range(retries):
-        try:
-            params = pika.ConnectionParameters(
-                host="rabbitmq", 
-                port=5672,
-                credentials=pika.PlainCredentials("admin", "admin")
-            )
-            return pika.BlockingConnection(params)
-        except pika.exceptions.AMQPConnectionError as e:
-            print(f"Connection failed ({i + 1}/{retries}), retrying in {delay} seconds...")
-            time.sleep(delay)
-    raise Exception("Failed to connect to RabbitMQ after several retries")
 
-connection = connect_with_retry()
-channel = connection.channel()
-channel.queue_declare(queue=RABBITMQ_QUEUE)
-
-def publish_transaction(message: str):
-    channel.basic_publish(
-        exchange='',
-        routing_key=RABBITMQ_QUEUE,
-        body=message
-    )
-
-def get_transactions():
+def peek_monitoring_transactions(limit=100):
+    """
+        Lee hasta `limit` transacciones de la cola de monitoreo sin eliminarlas.
+    """
     messages = []
 
     def callback(ch, method, properties, body):
-        messages.append(body.decode())
+        if len(messages) < limit:
+            try:
+                messages.append(json.loads(body.decode()))
+            except json.JSONDecodeError:
+                pass
+        else:
+            ch.stop_consuming()
 
-    for method_frame, properties, body in channel.consume(RABBITMQ_QUEUE, inactivity_timeout=1):
-        if method_frame is None:
-            break
-        messages.append(body.decode())
-        channel.basic_ack(method_frame.delivery_tag)
+    try:
+        rabbit_client_monitoring.channel.basic_consume(
+            queue=MONITORING_IN_PROGRESS_QUEUE,
+            on_message_callback=callback,
+            auto_ack=False
+        )
+        rabbit_client_monitoring.channel._connection.process_data_events(time_limit=1)  # consume por 1 segundos
+        rabbit_client_monitoring.channel.cancel()  # cancela el consumer para que no quede abierto
+    except Exception as e:
+        print(f"[ERROR] Peek consume failed: {e}")
 
     return messages
 
-def publish_task(task_data):
-    print(f"📤 Publicando tarea: {task_data}")
-    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
-    params = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
-    connection = pika.BlockingConnection(params)
-    channel = connection.channel()
-    channel.queue_declare(queue=TASK_QUEUE)
-    channel.basic_publish(
-        exchange='',
-        routing_key=TASK_QUEUE,
-        body=json.dumps(task_data)
-    )
-    connection.close()
+
+def publish_new_transaction(task_data):
+    print(f"Publicando tarea: {task_data}")
+    
+    if hasattr(task_data, "to_dict"):
+        task_data = task_data.to_dict()
+
+    rabbit_client_earring.publish(task_data)

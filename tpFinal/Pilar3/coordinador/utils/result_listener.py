@@ -4,7 +4,7 @@ import hashlib
 
 from utils.redis_client import REDIS_CLIENT
 from utils.logger import logger
-from utils.helper import RESULTS_QUEUE, \
+from utils.helper import IN_PROGRESS_QUEUE, \
                         get_rabbit_connection
 
 
@@ -67,8 +67,8 @@ def start_result_listener():
 
         connection = get_rabbit_connection()
         channel = connection.channel()
-        channel.queue_declare(queue=RESULTS_QUEUE)
-        channel.basic_consume(queue=RESULTS_QUEUE, on_message_callback=validar_y_guardar_bloque)
+        channel.queue_declare(queue=IN_PROGRESS_QUEUE)
+        channel.basic_consume(queue=IN_PROGRESS_QUEUE, on_message_callback=validar_y_guardar_bloque)
         channel.start_consuming()
 
     t = threading.Thread(target=run, daemon=True)

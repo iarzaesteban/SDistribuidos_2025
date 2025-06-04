@@ -5,7 +5,7 @@ services:
       dockerfile: deploy/Dockerfile
     container_name: nct
     ports:
-      - "11111:11111"
+      - "8989:8989"
     restart: unless-stopped
     volumes:
       - ./coordinador/app:/app/app
@@ -42,35 +42,36 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
-  worker-mock:
-    build:
-      context: ./coordinador/worker-mock
-    restart: unless-stopped
-    environment:
-      - RABBITMQ_HOST=rabbitmq
-      - REDIS_HOST=redis
-      - RABBITMQ_USER=admin
-      - RABBITMQ_PASS=admin
-      - WORKER_ID=worker-mock-1
-    depends_on:
-      - redis
-      - rabbitmq
+      
+  # worker-mock:
+  #   build:
+  #     context: ./coordinador/worker-mock
+  #   restart: unless-stopped
+  #   environment:
+  #     - RABBITMQ_HOST=rabbitmq
+  #     - REDIS_HOST=redis
+  #     - RABBITMQ_USER=admin
+  #     - RABBITMQ_PASS=admin
+  #     - WORKER_ID=worker-mock-1
+  #   depends_on:
+  #     - redis
+  #     - rabbitmq
 
-  worker-real:
-    build:
-      context: ./worker-real
-    runtime: nvidia
-    profiles:
-      - gpu
-    environment:
-      - RABBITMQ_HOST=rabbitmq
-      - REDIS_HOST=redis
-      - RABBITMQ_USER=admin
-      - RABBITMQ_PASS=admin
-      - WORKER_ID=worker-real-1
-    depends_on:
-      - redis
-      - rabbitmq
+  # worker-real:
+  #   build:
+  #     context: ./worker-real
+  #   runtime: nvidia
+  #   profiles:
+  #     - gpu
+  #   environment:
+  #     - RABBITMQ_HOST=rabbitmq
+  #     - REDIS_HOST=redis
+  #     - RABBITMQ_USER=admin
+  #     - RABBITMQ_PASS=admin
+  #     - WORKER_ID=worker-real-1
+  #   depends_on:
+  #     - redis
+  #     - rabbitmq
 
 
 
