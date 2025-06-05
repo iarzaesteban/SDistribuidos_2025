@@ -1,11 +1,26 @@
 import time
 import uuid
 import json
-from fastapi import APIRouter
-from utils.helper import REDIS_CLIENT, Transaction
-from utils.logger import logger
-from utils.rabbitmq_client import publish_new_transaction
+import hashlib
+import random
+from fastapi import APIRouter, Request, HTTPException
+from typing import List, Dict
 
+from utils.logger import logger
+from utils.rabbitmq_client import publish_new_transaction, RabbitMQClient
+from utils.helper import (REDIS_CLIENT, 
+                          Transaction, 
+                          validar_hash, 
+                          MAX_MINING_TRYS, 
+                          MAX_COINS,
+                          EARRING_QUEUE,
+                          IN_PROGRESS_QUEUE,
+                          MONITORING_IN_PROGRESS_QUEUE)
+
+rabbit_earring = RabbitMQClient(queue_name=EARRING_QUEUE)
+rabbit_in_progress = RabbitMQClient(queue_name=IN_PROGRESS_QUEUE)
+rabbit_monitoring = RabbitMQClient(queue_name=MONITORING_IN_PROGRESS_QUEUE)
+                                   
 router = APIRouter()
 
 @router.get("/")
@@ -59,24 +74,70 @@ def get_monitoring_tasks():
         return {"error": "No se pudieron obtener las transacciones"}
 
     
-@router.post("/publish.-results")
-def publish_results(result_data: dict):
-    """
-        Recupera y devuelve todos los bloques almacenados en Redis, ordenados por su timestamp.
+@router.post("/publish-results")
+async def publish_results(request: Request):
+    data = await request.json()
+    txs_by_worker: Dict[str, List[Transaction]] = {}
 
-        Obtiene la cantidad total de bloques desde la clave 'block_count', luego itera por cada índice
-        para recuperar los bloques individuales almacenados con claves 'block:0', 'block:1', etc.
-        Si se encuentran bloques, se parsean desde JSON, se agregan a una lista, y se ordenan por su
-        campo 'timestamp'. Finalmente, se devuelve la cantidad total y la lista ordenada de bloques.
+    for tx_data in data.get("transactions", []):
+        tx = Transaction(**tx_data)
+        txs_by_worker.setdefault(tx.worker_id, []).append(tx)
 
-        Returns:
-            dict: Un diccionario con dos claves:
-                - "cantidad": número total de bloques recuperados.
-                - "bloques": lista de bloques ordenados por timestamp.
-    """
-    ## TODO
-    ## Aca se validaran los resultados del procesamiento de los workers
-    ## Se encadena el/los nuevo/s bloque/s a la blockchain redis
-    tx_id = result_data.get("tx_id")
+    if not txs_by_worker:
+        raise HTTPException(status_code=400, detail="No transactions received")
 
-    return {"message": f"Resultado para transacción {tx_id} recibido"}
+    # Determinamos al ganador
+    max_count = max(len(txs) for txs in txs_by_worker.values())
+    candidates = [wid for wid, txs in txs_by_worker.items() if len(txs) == max_count]
+    winner = random.choice(candidates)
+    logger.info(f"Worker ganador: {winner} con {max_count} transacciones")
+
+    # Procesar transacciones
+    for wid, txs in txs_by_worker.items():
+        for tx in txs:
+            key = f"in_progress:{tx.tx_id}"
+            if not validar_hash(tx):
+                tries = int(REDIS_CLIENT.hincrby(key, "mining_trys", 1))
+                if tries >= MAX_MINING_TRYS:
+                    REDIS_CLIENT.delete(key)
+                    rabbit_in_progress.delete_message_by_txid(tx.tx_id)
+                    rabbit_monitoring.delete_message_by_txid(tx.tx_id)
+                else:
+                    rabbit_in_progress.publish(tx.dict())
+                    rabbit_monitoring.publish(tx.dict())
+                continue
+
+            # Hash válido: crear nuevo bloque
+            last_block = REDIS_CLIENT.get("last_block")
+            block_data = {
+                "previous_hash": last_block or "GENESIS",
+                "transaction": tx.dict()
+            }
+            block_hash = hashlib.sha1(json.dumps(block_data).encode()).hexdigest()
+            REDIS_CLIENT.set(f"block:{block_hash}", json.dumps(block_data))
+            REDIS_CLIENT.set("last_block", block_hash)
+
+            # Limpiar datos
+            REDIS_CLIENT.delete(key)
+            rabbit_in_progress.delete_message_by_txid(tx.tx_id)
+            rabbit_monitoring.delete_message_by_txid(tx.tx_id)
+
+    # Premiar al ganador
+    reward_amount = round(MAX_COINS * 0.001, 4)
+    reward_tx = Transaction(
+        source="SYSTEM",
+        target=winner,
+        amount=reward_amount,
+        description="Mining reward",
+        timestamp=str(request.headers.get("X-Timestamp", "")),
+        sign="SYSTEM",
+        nonce=0,
+        hash_previo=REDIS_CLIENT.get("last_block") or "GENESIS",
+        worker_id="SYSTEM",
+        tx_id=f"reward_{winner}"
+    )
+    rabbit_earring.publish(reward_tx.dict())
+
+    logger.info(f"Recompensa de {reward_amount} enviada a {winner}")
+    return {"winner": winner, "reward": reward_amount}
+

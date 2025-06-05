@@ -1,3 +1,10 @@
+- Me queda ver lo del worker_id para premiar al worker indicado (Transaction del worker y coordinado)
+- Ver el tema de sincro de relojes
+- Ver lo de la cantidad de intentos donde se almacena para validaciones y eso
+- ver lo de last_block de redis
+- ver cuando mete nuevo bloque en redis meta tmb el nonce y previus_hash y hash del bloque 
+- Ver como el coordinador le manda el premio por POST al worker
+
 import os
 import hashlib
 import requests

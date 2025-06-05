@@ -1,6 +1,7 @@
 import os
 import pika
 import redis
+import hashlib
 import time
 import base64
 from utils.logger import logger
@@ -10,6 +11,11 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
 )
 from cryptography.exceptions import InvalidSignature
+
+#Config blockchain
+MAX_MINING_TRYS = int(os.getenv("MAX_MINING_TRYS", 3))
+MAX_COINS = int(os.getenv("MAX_COINS", 20_000_000))
+
 # Config Redis
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
@@ -90,6 +96,9 @@ class Transaction(BaseModel):
             "sign": self.sign
         }
 
+def validar_hash(tx: Transaction) -> bool:
+    tx_data = f"{tx.source}|{tx.target}|{tx.amount}|{tx.description}|{tx.timestamp}|{tx.sign}|{tx.hash_previo}|{tx.nonce}"
+    return hashlib.sha1(tx_data.encode()).hexdigest().startswith("0000")
 
 def get_rabbit_connection():
     credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
