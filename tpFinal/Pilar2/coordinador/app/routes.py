@@ -1,13 +1,10 @@
 import time
 import uuid
 import json
-import hashlib
-from datetime import datetime
 from fastapi import APIRouter
-
 from utils.helper import REDIS_CLIENT, Transaction
 from utils.logger import logger
-from utils.rabbitmq_client import peek_monitoring_transactions, publish_new_transaction
+from utils.rabbitmq_client import publish_new_transaction
 
 router = APIRouter()
 
@@ -48,16 +45,20 @@ def new_task(tx: Transaction):
     return {"message": message}
 
 
-@router.get("/get-transactions")
-def get_transactions():
+@router.get("/monitoring-tasks")
+def get_monitoring_tasks():
+    """
+    Devuelve todas las transacciones monitoreadas sin desencolarlas.
+    """
     try:
-        transactions = peek_monitoring_transactions(limit=100)
-        return {"transactions": transactions, "count": len(transactions)}
+        tasks = REDIS_CLIENT.hgetall("monitoring_transactions")
+        decoded_tasks = [json.loads(v) for v in tasks.values()]
+        return {"transactions": decoded_tasks}
     except Exception as e:
-        logger.error(f"Error al obtener transacciones: {e}")
-        return {"error": "No se pudieron recuperar las transacciones."}
-    
+        logger.error(f"Error al obtener transacciones de monitoreo: {str(e)}")
+        return {"error": "No se pudieron obtener las transacciones"}
 
+    
 @router.post("/publish.-results")
 def publish_results(result_data: dict):
     """

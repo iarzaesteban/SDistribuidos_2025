@@ -1,0 +1,58 @@
+import os
+import pika
+import redis
+import time
+import json
+from utils.logger import logger
+
+
+# Config Redis
+REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+
+# Config RabbitMQ
+RABBITMQ_USER = os.getenv("RABBITMQ_USER")
+RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASS")
+RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
+RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
+EARRING_QUEUE = os.getenv("EARRING_QUEUE", "earrings") # Cola pendietes
+IN_PROGRESS_QUEUE = os.getenv("IN_PROGRESS_QUEUE", "in_progress")  # Cola En Curso  
+MONITORING_IN_PROGRESS_QUEUE = os.getenv("MONITORING_IN_PROGRESS_QUEUE", "monitoring_in_progress") # Cola En Curso espejo
+
+REDIS_CLIENT = redis.Redis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        password=REDIS_PASSWORD,
+        decode_responses=True
+    )
+
+def publish_monitoring_transaction(task_data):
+    if hasattr(task_data, "to_dict"):
+        task_data = task_data.to_dict()
+    
+    # También lo guardamos en Redis para lectura múltiple sin consumir
+    tx_id = task_data.get("tx_id")
+    REDIS_CLIENT.hset("monitoring_transactions", tx_id, json.dumps(task_data))
+
+
+def get_rabbit_connection():
+    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
+    params = pika.ConnectionParameters(
+        host=RABBITMQ_HOST,
+        port=RABBITMQ_PORT,
+        credentials=credentials,
+        heartbeat=600,
+        blocked_connection_timeout=300
+    )
+    return pika.BlockingConnection(params)
+
+
+def connect_with_retry(retries=10, delay=5):
+    for i in range(retries):
+        try:
+            return get_rabbit_connection()
+        except pika.exceptions.AMQPConnectionError as e:
+            print(f"Connection failed ({i + 1}/{retries}), retrying in {delay} seconds...")
+            time.sleep(delay)
+    raise Exception("Failed to connect to RabbitMQ after several retries")

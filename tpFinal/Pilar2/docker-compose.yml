@@ -42,20 +42,25 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
-      
+
+  mover:
+    build:
+      context: ./exchanger
+      dockerfile: Dockerfile
+    depends_on:
+      - rabbitmq
+    env_file:
+      - .env
+
   # worker-mock:
   #   build:
-  #     context: ./coordinador/worker-mock
+  #     context: ./worker_mock
+  #     dockerfile: Dockerfile
   #   restart: unless-stopped
-  #   environment:
-  #     - RABBITMQ_HOST=rabbitmq
-  #     - REDIS_HOST=redis
-  #     - RABBITMQ_USER=admin
-  #     - RABBITMQ_PASS=admin
-  #     - WORKER_ID=worker-mock-1
   #   depends_on:
-  #     - redis
-  #     - rabbitmq
+  #     - nct
+  #   env_file:
+  #     - .env
 
   # worker-real:
   #   build:
@@ -72,7 +77,6 @@ services:
   #   depends_on:
   #     - redis
   #     - rabbitmq
-
 
 
 volumes:
