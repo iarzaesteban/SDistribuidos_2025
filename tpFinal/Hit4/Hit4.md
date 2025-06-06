@@ -1,7 +1,7 @@
 
 # 🔑 CUDA MD5 Hashing
 
-Este proyecto implementa el cálculo del hash MD5 utilizando la capacidad de procesamiento paralelo de las GPUs NVIDIA mediante CUDA. La solución permite calcular eficientemente el hash MD5 para un texto proporcionado desde la línea de comandos.
+Este proyecto implementa el cálculo del hash MD5 utilizando la capacidad de procesamiento paralelo de las GPUs NVIDIA mediante CUDA. Permite calcular el hash MD5 para un texto que se ingresa desde la línea de comandos.
 
 ---
 
@@ -14,10 +14,10 @@ Este proyecto implementa el cálculo del hash MD5 utilizando la capacidad de pro
 
 ## 🛠️ ¿Cómo funciona?
 
-La solución está basada en una librería especializada que implementa el algoritmo MD5 usando CUDA. El proceso es:
+La solución está basada en una librería que implementa el algoritmo MD5 usando CUDA. El proceso es:
 
 1. Recibir el texto a través de argumentos del programa.
-2. Utilizar la GPU (CUDA kernels) para calcular eficientemente el hash MD5.
+2. Utilizar la GPU (CUDA kernels) para calcular el hash MD5.
 3. Retornar el resultado (hash MD5) como cadena hexadecimal en consola.
 
 ---
@@ -38,7 +38,7 @@ La solución está basada en una librería especializada que implementa el algor
 
 ## ⚙️ ¿Cómo compilar?
 
-Para compilar el proyecto necesite inicializar correctamente el entorno de compilación de Visual Studio 2019 en modo `x64`. Ejecute primero:
+Para compilar el proyecto tuve que inicializar correctamente el entorno de compilación de Visual Studio 2019 en modo `x64`. Ejecute primero:
 
 ```bash
 "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
@@ -78,7 +78,7 @@ MD5 Hash: 27a61cb914e5587df2a8c96e8ae0da40
 
 ## ⚠️ Problemas encontrados (y soluciones)
 
-Durante el desarrollo surgieron algunos inconvenientes específicos:
+Durante el desarrollo surgieron problemas:
 
 - **Error al inicializar Visual Studio y CUDA:**  
   Fue necesario usar explícitamente el script de inicialización del entorno:
@@ -94,6 +94,6 @@ Durante el desarrollo surgieron algunos inconvenientes específicos:
   }
   ```
 
-Esto aseguró compatibilidad correcta entre CUDA y el linker de Visual Studio.
+Esto aseguró compatibilidad entre CUDA y el linker de Visual Studio.
 
 ---

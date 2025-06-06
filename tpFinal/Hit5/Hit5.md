@@ -14,7 +14,7 @@ Este programa toma una **cadena base** y un **prefijo hexadecimal** y arranca un
 2. El programa inicializó un **batch** de 1024 posibles nonces generados aleatoriamente.
 3. Cada lote se envió a la GPU, donde el kernel `mcm_cuda_md5_hash_batch` calculó en paralelo los 1024 MD5.
 4. De regreso en la CPU, el código revisó cada hash en formato hexadecimal para ver si empezaba con `"0000"`.
-5. Al cabo de unas pocas iteraciones (dependiendo del prefijo y la suerte), encontró el **nonce 23312**:
+5. Despues de de unas pocas iteraciones (dependiendo del prefijo y la suerte), encontró el **nonce 23312**:
    ```
    Nonce: 23312
    Hash:  0000af08541c9b05925ffb697d3049e5
@@ -37,6 +37,6 @@ Buscando MD5(base+nonce) que empiece con "0000"...
 Nonce: 23312
 Hash:  0000af08541c9b05925ffb697d3049e5
 ```
-— así te muestra el número mágico (**nonce**) y su hash resultante
+— Muestra el **nonce** y su hash resultante
 
 ---

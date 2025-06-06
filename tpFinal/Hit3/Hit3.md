@@ -1,7 +1,7 @@
 
-# Informe sobre el repositorio NVIDIA/cccl (CUDA Core Compute Libraries)
+# Informe sobre NVIDIA/cccl (CUDA Core Compute Libraries)
 
-El repositorio **NVIDIA/cccl** en GitHub es básicamente una caja de herramientas para desarrolladores que laburan con CUDA en C++. En criollo, es un conjunto de librerías que te facilita escribir código eficiente y seguro para correr en GPUs de NVIDIA.
+El repositorio **NVIDIA/cccl** en GitHub es básicamente una caja de herramientas para desarrolladores que laburan con CUDA en C++. Es decir, es un conjunto de librerías que te facilita escribir código eficiente y seguro para correr en GPUs de NVIDIA.
 
 Lo interesante es que este repo junta tres librerías que antes vivían por separado:
 
@@ -11,7 +11,7 @@ Lo interesante es que este repo junta tres librerías que antes vivían por sepa
 
 ✅ **libcudacxx** → Es la implementación de la Standard Library de C++ adaptada a CUDA. Trae cosas como atomics, control de caché, sincronización, etc., para el código que corre en GPU.
 
-El objetivo de juntar todo en este repo es simplificarle la vida a los devs: ahora tienen todo lo esencial para CUDA C++ en un solo lugar, con una versión unificada, menos problemas de compatibilidad y más facilidad para mantenerse al día.
+El objetivo de juntar todo en este repo es simplificarle la vida a los devs: tiene todo lo esencial para CUDA C++ en un solo lugar, con una versión unificada, menos problemas de compatibilidad y más facilidad para mantenerse al día.
 
 ## ¿Cuándo se actualizó por última vez?
 
@@ -51,11 +51,6 @@ Desde marzo de 2024, Thrust forma parte de CUDA Core Compute Libraries (CCCL), a
 
 Compile y ejecute el primer ejemplo que se le presenta en  
 https://docs.nvidia.com/cuda/thrust/index.html#vectors
-
-> **Pregunta guía:**  
-¿Necesito instalar algo adicional o ya estaba disponible con CUDA?
-
----
 
 ## Resumen del proceso
 
@@ -196,7 +191,7 @@ Cuando programás **CUDA “a pelo”**, vos te encargás de todo:
 - Manejás el layout de memoria y optimizás acceso
 - Controlás sincronizaciones y errores
 
-Con **Thrust** eso cambia bastante:
+Con **Thrust** eso cambia:
 - Usás containers como `device_vector` o `host_vector` en lugar de manejar punteros y `cudaMalloc`.
 - Llamás a algoritmos de alto nivel (`thrust::sort`, `thrust::reduce`, `thrust::transform`) que ya hacen todo el trabajo paralelo internamente.
 - Ahorrás mucho código repetitivo.
