@@ -366,11 +366,16 @@ resource "kubernetes_secret" "rabbitmq" {
   metadata {
     name = "rabbitmq-secret"
   }
+
   data = {
-    rabbitmq-username = base64encode("admin")
-    rabbitmq-password = base64encode("admin123")
+    user     = base64encode("admin")
+    password = base64encode("admin")
   }
+
+  type = "Opaque"
 }
+
+
 
 ########################################
 #  7) RabbitMQ antiguo (Deployment + Service) [Comentado]
@@ -552,6 +557,13 @@ resource "kubernetes_deployment" "worker" {
               name = kubernetes_secret.coordinador_secret.metadata[0].name
             }
           }
+
+          env_from {
+            secret_ref {
+              name = kubernetes_secret.rabbitmq.metadata[0].name
+            }
+          }
+
         }
       }
     }
