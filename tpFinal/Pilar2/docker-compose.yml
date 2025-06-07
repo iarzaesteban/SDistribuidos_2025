@@ -1,24 +1,8 @@
 services:
-  nct:
-    build:
-      context: ./coordinador
-      dockerfile: deploy/Dockerfile
-    container_name: nct
-    ports:
-      - "8989:8989"
-    restart: unless-stopped
-    volumes:
-      - ./coordinador/app:/app/app
-    depends_on:
-      - redis
-      - rabbitmq
-    env_file:
-      - .env
 
   redis:
     image: redis:7.2-alpine
     container_name: redis
-    restart: unless-stopped
     ports:
       - "6379:6379"
     command: >
@@ -27,6 +11,12 @@ services:
       - redis_data:/data
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -43,6 +33,28 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
 
+
+  nct:
+    build:
+      context: ./coordinador
+      dockerfile: deploy/Dockerfile
+    container_name: nct
+    ports:
+      - "8989:8989"
+    restart: unless-stopped
+    volumes:
+      - ./coordinador/app:/app/app
+    depends_on:
+      - redis
+      - rabbitmq
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8989/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   mover:
     build:
       context: ./exchanger
@@ -52,15 +64,27 @@ services:
     env_file:
       - .env
 
-  # worker-mock:
-  #   build:
-  #     context: ./worker_mock
-  #     dockerfile: Dockerfile
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - nct
-  #   env_file:
-  #     - .env
+  validator:
+    build:
+      context: ./validator
+      dockerfile: Dockerfile
+    depends_on:
+      - redis
+    env_file:
+      - .env
+
+  worker-mock:
+    build:
+      context: ./worker_mock
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      nct:
+        condition: service_healthy
+    env_file:
+      - .env
 
   # worker-real:
   #   build:

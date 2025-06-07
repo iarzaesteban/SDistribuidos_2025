@@ -8,7 +8,6 @@ from utils.rabbitmq_connection import RabbitMQClient
 from utils.helper import (
     EARRING_QUEUE,
     IN_PROGRESS_QUEUE,
-    MONITORING_IN_PROGRESS_QUEUE,
     publish_monitoring_transaction,
     REDIS_CLIENT,
 )
@@ -18,8 +17,6 @@ BLOCKCHAIN_KEY = os.getenv("BLOCKCHAIN_KEY", "blockchain")
 
 # Flag para terminar de forma limpia
 shutdown_event = threading.Event()
-
-
 
 def get_last_block_hash():
     try:
@@ -36,7 +33,6 @@ def get_last_block_hash():
 def move_transactions():
     rabbit_earring = RabbitMQClient(queue_name=EARRING_QUEUE)
     rabbit_in_progress = RabbitMQClient(queue_name=IN_PROGRESS_QUEUE)
-    rabbit_monitoring = RabbitMQClient(queue_name=MONITORING_IN_PROGRESS_QUEUE)
 
     logger.info("Conexiones a RabbitMQ establecidas")
 
@@ -55,9 +51,9 @@ def move_transactions():
 
                 try:
                     tx = json.loads(body)
-                    tx["hash_previo"] = last_hash
+                    tx["hash_previo"] = last_hash # Aca le damos el último hash previo o
                     rabbit_in_progress.publish(tx)
-                    rabbit_monitoring.publish(tx)
+                    # rabbit_monitoring.publish(tx)
                     #Metemos las TXs en redis tambíen
                     publish_monitoring_transaction(tx)
                     # La quitamos de la cola de pendientes
@@ -80,7 +76,6 @@ def move_transactions():
             # Reconectar
             rabbit_earring = RabbitMQClient(queue_name=EARRING_QUEUE)
             rabbit_in_progress = RabbitMQClient(queue_name=IN_PROGRESS_QUEUE)
-            rabbit_monitoring = RabbitMQClient(queue_name=MONITORING_IN_PROGRESS_QUEUE)
 
 
 def handle_shutdown(signum, frame):

@@ -1,3 +1,4 @@
+import uuid
 import os
 import pika
 import redis
@@ -6,6 +7,7 @@ import time
 import base64
 from utils.logger import logger
 from pydantic import BaseModel, validator
+from typing import Optional
 from datetime import datetime, timedelta
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
@@ -15,7 +17,7 @@ from cryptography.exceptions import InvalidSignature
 #Config blockchain
 MAX_MINING_TRYS = int(os.getenv("MAX_MINING_TRYS", 3))
 MAX_COINS = int(os.getenv("MAX_COINS", 20_000_000))
-
+PREFIX = os.getenv("PREFIX", "000")
 # Config Redis
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
@@ -28,7 +30,6 @@ RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
 RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
 EARRING_QUEUE = os.getenv("EARRING_QUEUE", "earrings") # Cola pendietes
 IN_PROGRESS_QUEUE = os.getenv("IN_PROGRESS_QUEUE", "in_progress")  # Cola En Curso  
-MONITORING_IN_PROGRESS_QUEUE = os.getenv("MONITORING_IN_PROGRESS_QUEUE", "monitoring_in_progress") # Cola En Curso espejo
 
 REDIS_CLIENT = redis.Redis(
         host=REDIS_HOST,
@@ -38,12 +39,21 @@ REDIS_CLIENT = redis.Redis(
     )
 
 class Transaction(BaseModel):
+    tx_id: Optional[str] = None
+    worker_ip: Optional[str] = None
+    hash_previo: Optional[str] = None
+    nonce: Optional[int] = 0
+    tries: Optional[int] = 0
+    hash: Optional[str] = None
+
+    # De acá para abajo son los atributos para el hash
     source: str  # clave pública en base64
     target: str  # clave pública en base64
     amount: float
     description: str
     timestamp: str
     sign: str  # firma source en base64
+
 
     @validator("timestamp")
     def validate_timestamp_format(cls, value):
@@ -85,6 +95,7 @@ class Transaction(BaseModel):
             return True
         except (InvalidSignature, ValueError):
             return False
+
         
     def to_dict(self):
         return {
@@ -97,8 +108,8 @@ class Transaction(BaseModel):
         }
 
 def validar_hash(tx: Transaction) -> bool:
-    tx_data = f"{tx.source}|{tx.target}|{tx.amount}|{tx.description}|{tx.timestamp}|{tx.sign}|{tx.hash_previo}|{tx.nonce}"
-    return hashlib.sha1(tx_data.encode()).hexdigest().startswith("0000")
+    tx_data = f"{tx.tx_id}|{tx.source}|{tx.target}|{tx.amount}|{tx.description}|{tx.timestamp}|{tx.sign}|{tx.hash_previo}|{tx.nonce}"
+    return hashlib.sha1(tx_data.encode()).hexdigest().startswith(str(PREFIX))
 
 def get_rabbit_connection():
     credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
