@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pool
+  labels:
+    app: pool
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pool
+  template:
+    metadata:
+      labels:
+        app: pool
+    spec:
+      containers:
+        - name: pool
+          image: gcr.io/blockchainsd2025/pool:latest
+          ports:
+            - containerPort: 5003
+          env:
+            - name: REDIS_HOST
+              value: "redis"
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: user
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pool
+spec:
+  selector:
+    app: pool
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5003
+  type: ClusterIP
