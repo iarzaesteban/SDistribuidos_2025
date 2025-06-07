@@ -1,0 +1,51 @@
+name: Deploy Microservices to GKE
+
+on:
+  push:
+    branches: [ tp_integrador_2025 ]
+
+env:
+  PROJECT_ID: blockchainsd2025
+  CLUSTER_NAME: blockchain-cluster
+  CLUSTER_ZONE: southamerica-east1-a
+  GKE_NAMESPACE: default
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/catthehacker/ubuntu:full-latest
+
+    steps:
+      - name: Clonar el código
+        uses: actions/checkout@v3
+
+      - name: Autenticarse en Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configurar kubectl
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.CLUSTER_NAME }}
+          location: ${{ env.CLUSTER_ZONE }}
+
+      - name: Verificar autenticación
+        run: gcloud auth list
+
+      - name: Autenticarse en Artifact Registry
+        run: |
+          gcloud auth configure-docker
+
+      - name: Build y Push de microservicios
+        run: |
+          for service in backend frontend split joiner pool coordinator worker_mock; do
+            echo "🚧 Construyendo $service"
+            docker build -t gcr.io/${{ env.PROJECT_ID }}/${service}:latest ./tpFinal/$service
+            docker push gcr.io/${{ env.PROJECT_ID }}/${service}:latest
+          done
+
+      - name: Aplicar manifiestos de Kubernetes
+        run: |
+          kubectl apply -f tpFinal/Pilar3/infra/
