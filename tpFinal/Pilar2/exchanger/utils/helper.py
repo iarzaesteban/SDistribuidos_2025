@@ -3,8 +3,8 @@ import pika
 import redis
 import time
 import json
+from enum import Enum
 from utils.logger import logger
-
 
 # Config Redis
 REDIS_HOST = os.getenv("REDIS_HOST")
@@ -25,6 +25,12 @@ REDIS_CLIENT = redis.Redis(
         password=REDIS_PASSWORD,
         decode_responses=True
     )
+
+class TransactionStatus(str, Enum):
+    pendiente = "pendiente"
+    en_proceso = "en_proceso"
+    procesada = "procesada"
+    borrada = "borrada"
 
 def publish_monitoring_transaction(task_data):
     if hasattr(task_data, "to_dict"):

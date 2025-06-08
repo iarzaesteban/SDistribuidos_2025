@@ -1,18 +1,20 @@
-import uuid
 import os
 import pika
 import redis
 import hashlib
 import time
 import base64
-from utils.logger import logger
-from pydantic import BaseModel, validator
 from typing import Optional
+from enum import Enum
 from datetime import datetime, timedelta
+from pydantic import BaseModel, validator
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
 )
 from cryptography.exceptions import InvalidSignature
+
+from utils.logger import logger
+
 
 #Config blockchain
 MAX_MINING_TRYS = int(os.getenv("MAX_MINING_TRYS", 3))
@@ -38,8 +40,15 @@ REDIS_CLIENT = redis.Redis(
         decode_responses=True
     )
 
+class TransactionStatus(str, Enum):
+    pendiente = "pendiente"
+    en_proceso = "en_proceso"
+    procesada = "procesada"
+    borrada = "borrada"
+
 class Transaction(BaseModel):
     tx_id: Optional[str] = None
+    status: Optional[TransactionStatus] = None
     worker_ip: Optional[str] = None
     hash_previo: Optional[str] = None
     nonce: Optional[int] = 0

@@ -6,9 +6,10 @@ import threading
 from utils.logger import logger
 from utils.rabbitmq_connection import RabbitMQClient
 from utils.helper import (
+    TransactionStatus,
+    publish_monitoring_transaction,
     EARRING_QUEUE,
     IN_PROGRESS_QUEUE,
-    publish_monitoring_transaction,
     REDIS_CLIENT,
 )
 
@@ -51,7 +52,8 @@ def move_transactions():
 
                 try:
                     tx = json.loads(body)
-                    tx["hash_previo"] = last_hash # Aca le damos el último hash previo o
+                    tx["hash_previo"] = last_hash # Aca le damos el último hash previo o GENESIS
+                    tx["status"] = TransactionStatus.en_proceso.value
                     rabbit_in_progress.publish(tx)
                     #Metemos las TXs en redis tambíen
                     publish_monitoring_transaction(tx)

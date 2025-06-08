@@ -1,7 +1,7 @@
 import json
 import pika
-from utils.helper import connect_with_retry
-
+from utils.helper import connect_with_retry, EARRING_QUEUE
+from utils.logger import logger
 class RabbitMQClient:
     def __init__(self, queue_name, is_consumer=False):
         self.queue_name = queue_name
@@ -22,10 +22,10 @@ class RabbitMQClient:
 
     def _ensure_connection(self):
         if self.connection is None or self.connection.is_closed:
-            print("[WARN] Conexión cerrada, reconectando...")
+            logger.warning("Conexión cerrada, reconectando...")
             self._connect()
         elif self.channel is None or self.channel.is_closed:
-            print("[WARN] Canal cerrado, reconectando...")
+            logger.warning("Canal cerrado, reconectando...")
             self._connect()
 
     def publish(self, body, exchange=''):
@@ -41,17 +41,62 @@ class RabbitMQClient:
             properties=pika.BasicProperties(delivery_mode=2)
         )
 
-    def consume(self, callback):
+    def _get_message_by_txid(self, tx_id):
+        """
+            Busca y devuelve (sin borrar) un mensaje con el tx_id desde earring.
+        """
         self._ensure_connection()
-        if not self.is_consumer:
-            raise Exception("Client is not configured as consumer")
-        self.channel.basic_consume(
-            queue=self.queue_name,
-            on_message_callback=callback,
-            auto_ack=False
-        )
-        print(f"[INFO] Waiting for messages on {self.queue_name}. To exit press CTRL+C")
-        self.channel.start_consuming()
+        temp_queue = f"{EARRING_QUEUE}_temp"
+        self.channel.queue_declare(queue=temp_queue, durable=True)
+
+        found_message = None
+        requeued = 0
+
+        while True:
+            method_frame, header_frame, body = self.channel.basic_get(queue=EARRING_QUEUE, auto_ack=False)
+            if method_frame is None:
+                break
+
+            tx = json.loads(body)
+            if tx.get("tx_id") == tx_id and found_message is None:
+                found_message = {
+                    "body": body,
+                    "delivery_tag": method_frame.delivery_tag,
+                }
+                self.channel.basic_publish(
+                    exchange='',
+                    routing_key=temp_queue,
+                    body=body,
+                    properties=header_frame
+                )
+                self.channel.basic_ack(method_frame.delivery_tag)
+
+            else:
+                # Reencolar en temp
+                self.channel.basic_publish(
+                    exchange='',
+                    routing_key=temp_queue,
+                    body=body,
+                    properties=header_frame
+                )
+                self.channel.basic_ack(method_frame.delivery_tag)
+                requeued += 1
+
+        # Restauramos los mensajes no usados
+        while True:
+            method_frame, header_frame, body = self.channel.basic_get(queue=temp_queue, auto_ack=False)
+            if method_frame is None:
+                break
+            self.channel.basic_publish(
+                exchange='',
+                routing_key=EARRING_QUEUE,
+                body=body,
+                properties=header_frame
+            )
+            self.channel.basic_ack(method_frame.delivery_tag)
+
+        self.channel.queue_delete(queue=temp_queue)
+        return found_message
 
     def ack(self, delivery_tag):
         self._ensure_connection()

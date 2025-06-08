@@ -7,12 +7,12 @@ from fastapi import APIRouter, Request, HTTPException, Query
 from utils.logger import logger
 from utils.rabbitmq_client import publish_new_transaction, RabbitMQClient
 from utils.helper import (Transaction,
+                          TransactionStatus,
                           REDIS_CLIENT,
                           EARRING_QUEUE,
                           IN_PROGRESS_QUEUE)
 
 rabbit_earring = RabbitMQClient(queue_name=EARRING_QUEUE)
-rabbit_in_progress = RabbitMQClient(queue_name=IN_PROGRESS_QUEUE)
                                    
 router = APIRouter()
 
@@ -54,15 +54,64 @@ def new_task(tx: Transaction):
         tx_dict = tx.to_dict()
         tx_dict["tx_id"] = tx_id
         tx_dict["tries"] = 0
+        tx_dict["status"] = TransactionStatus.pendiente.value
         publish_new_transaction(tx_dict)
         message = f"Transacción publicada correctamente. ID: {tx_id}"
     return {"message": message}
 
 
+@router.get("/get-transaction/{tx_id}")
+async def get_transaction(tx_id: str):
+    logger.info(f"Vamos a buscar la Tx {tx_id}")
+    # Buscamos la TX en monitoring_transactions
+    tx_data = REDIS_CLIENT.hget("monitoring_transactions", tx_id)
+    if tx_data:
+        return {"status": "En proceso", "tx": json.loads(tx_data)}
+
+    # Buscamos la TX  en dropped_txs
+    dropped_list = REDIS_CLIENT.lrange("dropped_txs", 0, -1)
+    for raw_tx in dropped_list:
+        try:
+            tx = json.loads(raw_tx)
+            if tx.get("tx_id") == tx_id:
+                return {"status": "Borrada", "tx": tx}
+        except Exception:
+            continue
+    
+    # Buscamos la TX  en la cola rabbit earring
+    rabbit_client_earring = RabbitMQClient(queue_name=EARRING_QUEUE)
+    found = rabbit_client_earring._get_message_by_txid(tx_id)
+    if found:
+        return {"status": "Pendiente", "tx": json.loads(found["body"])}
+
+    # Buscamos la TX  en los bloques de la blockchain
+    block_keys = REDIS_CLIENT.keys("block:*")
+    for key in block_keys:
+        raw_block = REDIS_CLIENT.get(key)
+        if raw_block:
+            try:
+                block = json.loads(raw_block)
+                tx = block.get("transaction")
+                logger.info(f"LA RX ES {tx}")
+                if tx and tx.get("tx_id") == tx_id:
+                    block_hash = key.decode().replace("block:", "") if isinstance(key, bytes) else key.replace("block:", "")
+                    return {
+                        "status": "Procesda",
+                        "tx": tx,
+                        "block_id": block.get("block_id"),
+                        "block_hash": block_hash,
+                        "nonce":block.get("nonce"),
+                    }
+            except Exception:
+                continue
+
+    raise HTTPException(status_code=404, detail="Transacción no encontrada")
+    
+
 @router.get("/monitoring-tasks")
 def get_monitoring_tasks():
     """
-    Devuelve todas las transacciones monitoreadas sin desencolarlas.
+        Devuelve todas las transacciones monitoreadas sin desencolarlas.
     """
     try:
         tasks = REDIS_CLIENT.hgetall("monitoring_transactions")
@@ -145,12 +194,15 @@ async def get_blockchain(
         if id is not None:
             filtered = [b for b in blocks if int(b.get("block_id", -1)) == id]
         elif start is not None and end is not None:
+            if start > end:
+                logger.warning(f"Parámetros inválidos: start={start} > end={end}")
+                raise HTTPException(status_code=400, detail="Parámetro 'start' no puede ser mayor que 'end'")
             filtered = [b for b in blocks if start <= int(b.get("block_id", 0)) <= end]
         else:
             filtered = blocks
+            logger.info("Retornando todos los bloques sin filtro.")
 
         return {"Blockchain": filtered}
-
     except Exception as e:
         logger.error(f"Error al obtener la blockchain: {e}")
         raise HTTPException(status_code=500, detail="Error interno")

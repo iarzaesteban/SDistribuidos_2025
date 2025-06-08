@@ -115,11 +115,11 @@ print("Response:", response.json())
 # pensar lo del previous_hash, como obtenerlo, por ahí pensaba el coordiandor te manda todas las TX y el preious_hash, 
 # a medida que el worker las va procesando tener lo que sería el previous_hash en una variable e ir actualizandola a medida que procesa y consumirla 
 
-## Coordinador cuando inserta
+## Coordinador cuando inserta -------- Considerado, ver que ondis con esto
 # La tearea es el input y la transaccion es el input
 # Tanto source como target son el mismo
+# Ver lo del PREFIX y challenge, capaz es mejor pasarlo coordiando - worker y trabajarlo en la tx
 
-# Pensar si tenemos que guardar las TX dropiadas para obtner su status digamos y tener un histroioal de las dropiadas
 
 ## RELOJ para sincro
 # Ver el tema de sincro de relojes
@@ -129,7 +129,6 @@ print("Response:", response.json())
 
 # Worker
 # Tener algun raner que borre los workers que tiene registrado en coordiandor registrados, le pegariamos a un health y si no devuelve, lo borramos 
-
 
 
 ### IN_PROGRESS

@@ -11,10 +11,11 @@ from datetime import datetime
 from utils.logger import logger
 from utils.rabbitmq_connection import RabbitMQClient
 from utils.helper import (
+    TransactionStatus,
+    Transaction,
+    validar_hash,
     IN_PROGRESS_QUEUE,
     REDIS_CLIENT,
-    validar_hash,
-    Transaction,
     MAX_COINS,
     MAX_MINING_TRYS
 )
@@ -76,6 +77,7 @@ def get_transaction_queue_by_id(tx_id):
 
     return json.loads(tx['body'])
 
+
 async def handle_transaction(tx: Transaction, is_winner: bool):
     tx_id = tx.tx_id
     key = f"in_progress:{tx.worker_ip}"
@@ -84,8 +86,12 @@ async def handle_transaction(tx: Transaction, is_winner: bool):
     if not valid:
         logger.info("EL hash NO es válido")
         transaction = get_transaction_queue_by_id(tx_id)
+
         if transaction['tries'] >= MAX_MINING_TRYS:
-            logger.info(f"La TX {transaction} tiene MAS de 3 intentos, borramos")
+            logger.info(f"La TX {transaction} tiene MAS de {MAX_MINING_TRYS} intentos, la marcamos como borrada")
+            transaction["status"] = TransactionStatus.borrada.value
+            REDIS_CLIENT.rpush("dropped_txs", json.dumps(transaction))
+
             REDIS_CLIENT.hdel("monitoring_transactions", tx_id)
             rabbit_in_progress.delete_message_by_txid(tx_id)
         else:
@@ -108,6 +114,7 @@ async def handle_transaction(tx: Transaction, is_winner: bool):
         block_data = {
             "block_id": block_id,
             "previous_hash": last_block,
+            "nonce": tx.nonce,
             "transaction": tx.to_dict()
         }
         # Obtengo el hash del bloque para encadenar
