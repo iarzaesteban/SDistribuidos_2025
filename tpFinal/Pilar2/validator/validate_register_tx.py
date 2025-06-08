@@ -82,9 +82,8 @@ async def handle_transaction(tx: Transaction, is_winner: bool):
     valid = validar_hash(tx)
 
     if not valid:
-        logger.info("EL hash NOOO es válido")
+        logger.info("EL hash NO es válido")
         transaction = get_transaction_queue_by_id(tx_id)
-        logger.info(f" La transaccion  es {transaction} !!!!!!!!!!!!!!!!!!!!!!!!!!")
         if transaction['tries'] >= MAX_MINING_TRYS:
             logger.info(f"La TX {transaction} tiene MAS de 3 intentos, borramos")
             REDIS_CLIENT.hdel("monitoring_transactions", tx_id)

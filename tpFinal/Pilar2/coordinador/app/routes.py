@@ -2,7 +2,7 @@ import asyncio
 import time
 import uuid
 import json
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Query
 
 from utils.logger import logger
 from utils.rabbitmq_client import publish_new_transaction, RabbitMQClient
@@ -113,7 +113,17 @@ async def get_last_block():
     
 
 @router.get("/blockchain")
-async def get_blockchain():
+async def get_blockchain(
+    id: int = Query(None),
+    start: int = Query(None),
+    end: int = Query(None),
+):
+    """
+        Como pegarle a este endpoint
+        curl http://localhost:8989/blockchain   ---> obtenemos todos los bloques
+        curl http://localhost:8989/blockchain?id=2   ---> obtenemos el bloque con ese id 
+        curl http://localhost:8989/blockchain?start=2&end=4   ---> obtenemos aquellos bloques con id entre 2 y 4 (use postman, con curl no funcó)
+    """
     try:
         block_keys = REDIS_CLIENT.keys("block:*")
         if not block_keys:
@@ -131,7 +141,15 @@ async def get_blockchain():
         # Ordenamos por block_id (convertido a int por si acaso viene como string)
         blocks.sort(key=lambda b: int(b.get("block_id", 0)))
 
-        return {"Blockchain": blocks}
+        # Filtros según los parámetros
+        if id is not None:
+            filtered = [b for b in blocks if int(b.get("block_id", -1)) == id]
+        elif start is not None and end is not None:
+            filtered = [b for b in blocks if start <= int(b.get("block_id", 0)) <= end]
+        else:
+            filtered = blocks
+
+        return {"Blockchain": filtered}
 
     except Exception as e:
         logger.error(f"Error al obtener la blockchain: {e}")

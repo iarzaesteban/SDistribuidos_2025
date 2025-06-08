@@ -118,7 +118,6 @@ print("Response:", response.json())
 ## Coordinador cuando inserta
 # La tearea es el input y la transaccion es el input
 # Tanto source como target son el mismo
-# Tener o modificar endoiint blockchain para que si te enbian un id, devolver esa tx, si te envian un ranto [10,20] devolver las tx entre ese rango, si no viene nada devolver toda la blockchain
 
 # Pensar si tenemos que guardar las TX dropiadas para obtner su status digamos y tener un histroioal de las dropiadas
 
@@ -130,3 +129,7 @@ print("Response:", response.json())
 
 # Worker
 # Tener algun raner que borre los workers que tiene registrado en coordiandor registrados, le pegariamos a un health y si no devuelve, lo borramos 
+
+
+
+### IN_PROGRESS
