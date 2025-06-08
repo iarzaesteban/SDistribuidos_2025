@@ -26,7 +26,6 @@ class Transaction(BaseModel):
     description: str
     timestamp: str
     sign: str
-
     
 
     def to_string(self, include_nonce=True):
@@ -52,9 +51,9 @@ class Transaction(BaseModel):
 
     def mine(self, prefix: str = PREFIX, mock_result: bool = False):
         self.nonce = 0
-        if mock_result:
-            self.hash = "sarasa"
-            self.nonce = 0
+        if mock_result and self.description != "pepe":
+            self.hash = None
+            self.nonce = -1
             return self.hash
         else:
             while True:

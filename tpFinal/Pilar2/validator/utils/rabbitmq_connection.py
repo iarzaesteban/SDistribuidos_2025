@@ -30,24 +30,12 @@ class RabbitMQClient:
             logger.warning("Canal cerrado, reconectando...")
             self._connect()
 
-    def publish(self, body, exchange='', tx_id=None):
+    def publish(self, body, exchange=''):
         self._ensure_connection()
-
-        if tx_id:
-            # Buscar en in_progress el mensaje con ese tx_id
-            message = self._get_message_by_txid(tx_id)
-            if message:
-                logger.info(f"Re-publicando tx {tx_id} con incremento de tries")
-                tx = json.loads(message['body'])
-                tx['tries'] = tx.get('tries', 0) + 1
-                self.publish(tx)  # Llamado recursivo con dict
-            else:
-                logger.warning(f"No se encontró tx_id {tx_id} en in_progress")
-            return
 
         if isinstance(body, dict):
             body = json.dumps(body)
-
+        logger.info(f"EN PUBLIS EL BODY ES {body}")
         self.channel.basic_publish(
             exchange=exchange,
             routing_key=self.queue_name,

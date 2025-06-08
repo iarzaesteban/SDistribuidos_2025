@@ -53,7 +53,6 @@ def move_transactions():
                     tx = json.loads(body)
                     tx["hash_previo"] = last_hash # Aca le damos el último hash previo o
                     rabbit_in_progress.publish(tx)
-                    # rabbit_monitoring.publish(tx)
                     #Metemos las TXs en redis tambíen
                     publish_monitoring_transaction(tx)
                     # La quitamos de la cola de pendientes

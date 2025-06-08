@@ -2,20 +2,12 @@ import asyncio
 import time
 import uuid
 import json
-import hashlib
-import random
-import aiohttp
 from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import JSONResponse
-from typing import List, Dict
 
 from utils.logger import logger
 from utils.rabbitmq_client import publish_new_transaction, RabbitMQClient
-from utils.helper import (REDIS_CLIENT, 
-                          Transaction, 
-                          validar_hash, 
-                          MAX_MINING_TRYS, 
-                          MAX_COINS,
+from utils.helper import (Transaction,
+                          REDIS_CLIENT,
                           EARRING_QUEUE,
                           IN_PROGRESS_QUEUE)
 
@@ -124,18 +116,26 @@ async def get_last_block():
 async def get_blockchain():
     try:
         block_keys = REDIS_CLIENT.keys("block:*")
-        if block_keys:
-            block_keys = [k for k in block_keys if k != "last_block"]
-            blocks = {}
-            for key in block_keys:
-                raw_data = REDIS_CLIENT.get(key)
-                blocks[key] = json.loads(raw_data)
-            logger.info("Blockchain:", blocks)
-        return {"Blockchain": blocks}
-    except Exception as e:
-        logger.error(f"Error al obtener el último bloque: {e}")
-        raise HTTPException(status_code=500, detail="Error interno")
+        if not block_keys:
+            return {"Blockchain": []}
 
+        blocks = []
+        for key in block_keys:
+            raw_data = REDIS_CLIENT.get(key)
+            if raw_data:
+                block = json.loads(raw_data)
+                # Agregamos también el hash del bloque
+                block["hash"] = key.decode().replace("block:", "") if isinstance(key, bytes) else key.replace("block:", "")
+                blocks.append(block)
+
+        # Ordenamos por block_id (convertido a int por si acaso viene como string)
+        blocks.sort(key=lambda b: int(b.get("block_id", 0)))
+
+        return {"Blockchain": blocks}
+
+    except Exception as e:
+        logger.error(f"Error al obtener la blockchain: {e}")
+        raise HTTPException(status_code=500, detail="Error interno")
 
 
 @router.post("/publish-results")

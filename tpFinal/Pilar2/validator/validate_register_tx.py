@@ -5,9 +5,9 @@ import time
 import asyncio
 import hashlib
 import signal
-import random
 import threading
-from typing import List, Dict
+from typing import List, Dict, Optional
+from datetime import datetime
 from utils.logger import logger
 from utils.rabbitmq_connection import RabbitMQClient
 from utils.helper import (
@@ -28,9 +28,33 @@ shutdown_event = threading.Event()
 rabbit_in_progress = RabbitMQClient(queue_name=IN_PROGRESS_QUEUE)
 
 
-def select_best_worker(txs_by_worker: Dict[str, List[Transaction]]) -> str:
-    sorted_workers = sorted(txs_by_worker.items(), key=lambda item: (-len(item[1]), item[1][0].timestamp))
-    return sorted_workers[0][0] if sorted_workers else None
+def select_best_worker(txs_by_worker: Dict[str, List[Transaction]]) -> Optional[str]:
+    best_worker = None
+    best_count = 0
+    best_first_timestamp = None
+
+    for worker_ip, txs in txs_by_worker.items():
+        # Filtrar solo transacciones procesadas (las que tienen un hash válido)
+        processed_txs = [tx for tx in txs if tx.hash is not None]
+
+        if not processed_txs:
+            continue
+
+        # Ordenamos las transacciones procesadas por timestamp
+        processed_txs.sort(key=lambda tx: tx.timestamp)
+
+        count = len(processed_txs)
+        first_ts = datetime.fromisoformat(processed_txs[0].timestamp)
+
+        if (
+            count > best_count or
+            (count == best_count and first_ts < best_first_timestamp)
+        ):
+            best_worker = worker_ip
+            best_count = count
+            best_first_timestamp = first_ts
+
+    return best_worker
 
 
 async def reward_worker(winner: str, amount: float):
@@ -44,6 +68,13 @@ async def reward_worker(winner: str, amount: float):
         logger.error(f"[ERROR] No se pudo enviar la recompensa al worker ganador: {e}")
 
 
+def get_transaction_queue_by_id(tx_id):
+    tx = rabbit_in_progress._get_message_by_txid(tx_id)
+    if not tx:
+        logger.warning(f"No se encontró tx_id {tx_id} en in_progress")
+        return
+
+    return json.loads(tx['body'])
 
 async def handle_transaction(tx: Transaction, is_winner: bool):
     tx_id = tx.tx_id
@@ -52,29 +83,36 @@ async def handle_transaction(tx: Transaction, is_winner: bool):
 
     if not valid:
         logger.info("EL hash NOOO es válido")
-        
-        if tx.tries >= MAX_MINING_TRYS:
+        transaction = get_transaction_queue_by_id(tx_id)
+        logger.info(f" La transaccion  es {transaction} !!!!!!!!!!!!!!!!!!!!!!!!!!")
+        if transaction['tries'] >= MAX_MINING_TRYS:
+            logger.info(f"La TX {transaction} tiene MAS de 3 intentos, borramos")
             REDIS_CLIENT.hdel("monitoring_transactions", tx_id)
             rabbit_in_progress.delete_message_by_txid(tx_id)
-            logger.info("Tiene MAS de 3 intentos")
         else:
-            logger.info("Tiene MENOS de 3 intentos")
-            tx.tries = tx.tries + 1
-            rabbit_in_progress.publish(tx.dict())
-            REDIS_CLIENT.hset("monitoring_transactions", tx_id, json.dumps(tx.dict()))
+            transaction['tries'] = transaction.get('tries', 0) + 1
+            REDIS_CLIENT.hset("monitoring_transactions", transaction['tx_id'], json.dumps(transaction))
+            rabbit_in_progress.publish(transaction)
         return
+        
     logger.info("EL hash ES válido")
     if is_winner:
         # Tomo el último bloque de la blockchain
         last_block = REDIS_CLIENT.get("last_block") or "GENESIS"
+
+        # Obtenemos un ID único e incremental para el bloque
+        if not REDIS_CLIENT.exists("block_id_counter"):
+            REDIS_CLIENT.set("block_id_counter", 0)
+        block_id = REDIS_CLIENT.incr("block_id_counter")
+
         # Preparo el nuevo bloque
         block_data = {
+            "block_id": block_id,
             "previous_hash": last_block,
             "transaction": tx.to_dict()
         }
         # Obtengo el hash del bloque para encadenar
         block_hash = hashlib.sha1(json.dumps(block_data).encode()).hexdigest()
-        logger.info(f"block_hash -----> {block_hash}")
 
         # Agregamos nuevo bloque
         REDIS_CLIENT.set(f"block:{block_hash}", json.dumps(block_data))
@@ -89,20 +127,19 @@ async def handle_transaction(tx: Transaction, is_winner: bool):
 
 
 async def process_transactions_and_reward(txs_by_worker: Dict[str, List[Transaction]]):
+    # Buscamos el worker ganador
     winner = select_best_worker(txs_by_worker)
-    logger.info(f"EL GANADOR ES {winner}")
-    if not winner:
-        logger.info("No hay workers disponibles para seleccionar como ganador.")
-        return
+    logger.info(f"Worker ganador: {winner if winner else 'Ninguno'}")
 
-    logger.info(f"Worker ganador: {winner}")
-
+    # Procesammos todas las transacciones
     for worker_ip, txs in txs_by_worker.items():
         is_winner = (worker_ip == winner)
         for tx in txs:
             await handle_transaction(tx, is_winner)
 
-    await reward_worker(winner, round(MAX_COINS * 0.001, 4))
+    # Si hay worker ganador, se le da la recompensa
+    if winner:
+        await reward_worker(winner, round(MAX_COINS * 0.001, 4))
 
 
 async def monitor_pending_transactions():

@@ -116,15 +116,6 @@ def validar_hash(tx: Transaction) -> bool:
     return hashlib.sha1(tx_data.encode()).hexdigest().startswith(str(PREFIX))
 
 
-def publish_monitoring_transaction(task_data):
-    if hasattr(task_data, "to_dict"):
-        task_data = task_data.to_dict()
-    
-    # También lo guardamos en Redis para lectura múltiple sin consumir
-    tx_id = task_data.get("tx_id")
-    REDIS_CLIENT.hset("monitoring_transactions", tx_id, json.dumps(task_data))
-
-
 def get_rabbit_connection():
     credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
     params = pika.ConnectionParameters(
