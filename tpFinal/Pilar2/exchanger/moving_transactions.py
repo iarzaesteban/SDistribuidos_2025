@@ -11,6 +11,7 @@ from utils.helper import (
     EARRING_QUEUE,
     IN_PROGRESS_QUEUE,
     REDIS_CLIENT,
+    CHALLENGE
 )
 
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", 30))
@@ -54,6 +55,7 @@ def move_transactions():
                     tx = json.loads(body)
                     tx["hash_previo"] = last_hash # Aca le damos el último hash previo o GENESIS
                     tx["status"] = TransactionStatus.en_proceso.value
+                    tx["challenge"] = CHALLENGE
                     rabbit_in_progress.publish(tx)
                     #Metemos las TXs en redis tambíen
                     publish_monitoring_transaction(tx)

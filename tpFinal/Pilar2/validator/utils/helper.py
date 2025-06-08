@@ -19,7 +19,6 @@ from utils.logger import logger
 #Config blockchain
 MAX_MINING_TRYS = int(os.getenv("MAX_MINING_TRYS", 3))
 MAX_COINS = int(os.getenv("MAX_COINS", 20_000_000))
-PREFIX = os.getenv("PREFIX", "000")
 
 # Config Redis
 REDIS_HOST = os.getenv("REDIS_HOST")
@@ -31,6 +30,7 @@ RABBITMQ_USER = os.getenv("RABBITMQ_USER")
 RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASS")
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
 RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
+CHALLENGE = os.getenv("CHALLENGE", "000")
 EARRING_QUEUE = os.getenv("EARRING_QUEUE", "earrings") # Cola pendietes
 IN_PROGRESS_QUEUE = os.getenv("IN_PROGRESS_QUEUE", "in_progress")  # Cola En Curso  
 
@@ -56,6 +56,7 @@ class Transaction(BaseModel):
     nonce: Optional[int] = 0
     tries: Optional[int] = 0
     hash: Optional[str] = None
+    challenge: Optional[str] = None
 
     # De acá para abajo son los atributos para el hash
     source: str  # clave pública en base64
@@ -122,7 +123,7 @@ class Transaction(BaseModel):
 
 def validar_hash(tx: Transaction) -> bool:
     tx_data = f"{tx.tx_id}|{tx.source}|{tx.target}|{tx.amount}|{tx.description}|{tx.timestamp}|{tx.sign}|{tx.hash_previo}|{tx.nonce}"
-    return hashlib.sha1(tx_data.encode()).hexdigest().startswith(str(PREFIX))
+    return hashlib.sha1(tx_data.encode()).hexdigest().startswith(str(tx.challenge))
 
 
 def get_rabbit_connection():

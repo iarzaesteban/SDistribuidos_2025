@@ -19,6 +19,8 @@ RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
 EARRING_QUEUE = os.getenv("EARRING_QUEUE", "earrings") # Cola pendietes
 IN_PROGRESS_QUEUE = os.getenv("IN_PROGRESS_QUEUE", "in_progress")  # Cola En Curso  
 
+CHALLENGE = os.getenv("CHALLENGE", "000")
+
 REDIS_CLIENT = redis.Redis(
         host=REDIS_HOST,
         port=REDIS_PORT,

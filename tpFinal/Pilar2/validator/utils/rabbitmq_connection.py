@@ -35,7 +35,7 @@ class RabbitMQClient:
 
         if isinstance(body, dict):
             body = json.dumps(body)
-        logger.info(f"EN PUBLIS EL BODY ES {body}")
+            
         self.channel.basic_publish(
             exchange=exchange,
             routing_key=self.queue_name,

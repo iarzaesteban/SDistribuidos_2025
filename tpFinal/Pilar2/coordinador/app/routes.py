@@ -92,7 +92,6 @@ async def get_transaction(tx_id: str):
             try:
                 block = json.loads(raw_block)
                 tx = block.get("transaction")
-                logger.info(f"LA RX ES {tx}")
                 if tx and tx.get("tx_id") == tx_id:
                     block_hash = key.decode().replace("block:", "") if isinstance(key, bytes) else key.replace("block:", "")
                     return {

@@ -111,14 +111,13 @@ print("Response:", response.json())
 # }
 
 ## Validador
-# ver cuando mete nuevo bloque en redis meta tmb el nonce y previus_hash y hash del bloque (estudiar o ver como validan la cadena de la blockchain )
+# Cuando se obtenga la blockchain ver si  se puede validar que este bien encadenada que cumpla cel hash con lo que hashea
 # pensar lo del previous_hash, como obtenerlo, por ahí pensaba el coordiandor te manda todas las TX y el preious_hash, 
 # a medida que el worker las va procesando tener lo que sería el previous_hash en una variable e ir actualizandola a medida que procesa y consumirla 
 
-## Coordinador cuando inserta -------- Considerado, ver que ondis con esto
+## Coordinador cuando inserta -------- tener lo siguiente en cuenta, ver que ondis con esto
 # La tearea es el input y la transaccion es el input
 # Tanto source como target son el mismo
-# Ver lo del PREFIX y challenge, capaz es mejor pasarlo coordiando - worker y trabajarlo en la tx
 
 
 ## RELOJ para sincro
@@ -132,3 +131,5 @@ print("Response:", response.json())
 
 
 ### IN_PROGRESS
+
+# Ver lo del PREFIX y challenge, capaz es mejor pasarlo coordiando - worker y trabajarlo en la tx

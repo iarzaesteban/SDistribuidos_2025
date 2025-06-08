@@ -11,7 +11,6 @@ from utils.helper import (
     COORDINATOR_URL,
     RESOLUTION_INTERVAL,
     MOCK_TASK_WORKER,
-    PREFIX
 )
 
 app = FastAPI()
@@ -43,7 +42,7 @@ async def mine_transactions(transactions: list[Transaction]) -> list[Transaction
             logger.warning(f"[MINING] Tiempo agotado.")
             break
         tx.worker_ip = WORKER_IP
-        tx.mine(prefix=PREFIX, mock_result=MOCK_TASK_WORKER)
+        tx.mine(prefix=tx.challenge, mock_result=MOCK_TASK_WORKER)
         mined.append(tx)
     return mined
 

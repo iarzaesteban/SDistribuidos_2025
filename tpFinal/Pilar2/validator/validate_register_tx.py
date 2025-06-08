@@ -17,7 +17,8 @@ from utils.helper import (
     IN_PROGRESS_QUEUE,
     REDIS_CLIENT,
     MAX_COINS,
-    MAX_MINING_TRYS
+    MAX_MINING_TRYS,
+    CHALLENGE
 )
 
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", 30))
@@ -87,8 +88,15 @@ async def handle_transaction(tx: Transaction, is_winner: bool):
         logger.info("EL hash NO es válido")
         transaction = get_transaction_queue_by_id(tx_id)
 
-        if transaction['tries'] >= MAX_MINING_TRYS:
-            logger.info(f"La TX {transaction} tiene MAS de {MAX_MINING_TRYS} intentos, la marcamos como borrada")
+        if transaction['tries'] >= MAX_MINING_TRYS and len(transaction['challenge']) == len(CHALLENGE):
+            logger.info(f"La TX {transaction} tiene MAS de {MAX_MINING_TRYS} intentos, le bajamos la complejidad al desafio")
+            # Bajar complejida, seguir sumando el tries y seguir
+            transaction['challenge'] = CHALLENGE[:-1]
+            transaction['tries'] = 0
+            REDIS_CLIENT.hset("monitoring_transactions", transaction['tx_id'], json.dumps(transaction))
+            rabbit_in_progress.publish(transaction)
+        elif transaction['tries'] >= MAX_MINING_TRYS*2: # ya si se pasa que luego de bajar la complejida, descartarla
+            logger.info(f"La TX {transaction} tiene MAS de {MAX_MINING_TRYS*2} intentos, la marcamos como borrada")
             transaction["status"] = TransactionStatus.borrada.value
             REDIS_CLIENT.rpush("dropped_txs", json.dumps(transaction))
 

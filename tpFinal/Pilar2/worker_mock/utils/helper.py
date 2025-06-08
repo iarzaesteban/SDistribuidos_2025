@@ -6,7 +6,6 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 COORDINATOR_URL = os.getenv("COORDINATOR_URL", "http://nct:8989")
-PREFIX = os.getenv("PREFIX", "000")
 RESOLUTION_INTERVAL = int(os.getenv("RESOLUTION_INTERVAL", 5 * 60))
 MOCK_TASK_WORKER  = os.getenv("MOCK_TASK_WORKER", False)
 
@@ -18,6 +17,7 @@ class Transaction(BaseModel):
     hash: Optional[str] = None
     hash_previo: Optional[str] = None
     nonce: Optional[int] = 0
+    challenge: Optional[str] = None
     
     tx_id: str
     source: str
@@ -49,7 +49,7 @@ class Transaction(BaseModel):
     def compute_hash(self):
         return hashlib.sha1(self.to_string().encode()).hexdigest()
 
-    def mine(self, prefix: str = PREFIX, mock_result: bool = False):
+    def mine(self, prefix: str = None, mock_result: bool = False):
         self.nonce = 0
         if mock_result and self.description != "pepe":
             self.hash = None
