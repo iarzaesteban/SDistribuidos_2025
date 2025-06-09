@@ -165,7 +165,7 @@ resource "kubernetes_stateful_set" "rabbitmq" {
           }
         }
         # Asegúrate de que apunte a tu StorageClass zonal-ssd
-        storage_class_name = kubernetes_storage_class.zonal_ssd.metadata[0].name
+        storage_class_name = "standard"
       }
     }
   }

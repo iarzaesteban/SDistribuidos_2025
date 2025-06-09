@@ -1,0 +1,44 @@
+name: Infra Provisioning
+
+on:
+  push:
+    paths:
+      - 'Pilar3/infra/**'
+      - '.github/workflows/infra.yaml'
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_ID: blockchainsd2025
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Authenticate with Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ env.PROJECT_ID }}
+
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: '1.5.6'
+
+    - name: Make Terraform CLI executable
+      run: chmod +x "${TERRAFORM_CLI_PATH}/terraform"
+
+    - name: Terraform Init
+      working-directory: Pilar3/infra
+      run: terraform init
+
+    - name: Terraform Apply
+      working-directory: Pilar3/infra
+      run: terraform apply -auto-approve

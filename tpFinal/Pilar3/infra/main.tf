@@ -334,7 +334,7 @@ resource "kubernetes_stateful_set" "redis" {
             storage = "20Gi"
           }
         }
-        storage_class_name = kubernetes_storage_class.zonal_ssd.metadata[0].name
+        storage_class_name = "standard"
       }
     }
   }
@@ -368,8 +368,8 @@ resource "kubernetes_secret" "rabbitmq" {
   }
 
   data = {
-    user     = base64encode("admin")
-    password = base64encode("admin")
+   "rabbitmq-username" = base64encode("admin")
+   "rabbitmq-password" = base64encode("admin")
   }
 
   type = "Opaque"
