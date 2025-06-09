@@ -183,7 +183,7 @@ async def get_blockchain(
             if raw_data:
                 block = json.loads(raw_data)
                 # Agregamos también el hash del bloque
-                block["hash"] = key.decode().replace("block:", "") if isinstance(key, bytes) else key.replace("block:", "")
+                block["block_hash"] = key.decode().replace("block:", "") if isinstance(key, bytes) else key.replace("block:", "")
                 blocks.append(block)
 
         # Ordenamos por block_id (convertido a int por si acaso viene como string)

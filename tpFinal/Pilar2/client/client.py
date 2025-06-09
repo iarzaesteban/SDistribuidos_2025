@@ -25,7 +25,13 @@ source_b64 = base64.b64encode(public_key_bytes).decode()
 target_b64 = source_b64  # para pruebas, usamos la misma clave
 amount = 100.0
 description = "Prueba de transacción"
-#description = "pepe"
+###########################################################
+###########################################################
+# Esto lo uso para hardcodear cosas y probar que un worker 
+# no proceso una tx  
+description = "pepe" 
+###########################################################
+###########################################################
 
 # 2. Armar mensaje y firmarlo
 message = f"{source_b64}{target_b64}{amount}{description}{timestamp}".encode()
@@ -52,72 +58,95 @@ print("Response:", response.json())
 
 
 
-
 # {
 #    "Blockchain":[
 #       {
 #          "block_id":1,
 #          "previous_hash":"GENESIS",
+#          "nonce":837,
 #          "transaction":{
-#             "source":"ench/qqMYacsN8c8/efQ1q1W6O/oewg0kw7pp47gM9I=",
-#             "target":"ench/qqMYacsN8c8/efQ1q1W6O/oewg0kw7pp47gM9I=",
+#             "tx_id":"41720bb6-52df-4d57-b735-1d8ffcac9f1c",
+#             "source":"0y/Rn5iEPMG4KFGVS19lQtVPToXT6GUfBDw+gW4d49A=",
+#             "target":"0y/Rn5iEPMG4KFGVS19lQtVPToXT6GUfBDw+gW4d49A=",
 #             "amount":100.0,
 #             "description":"pepe",
-#             "timestamp":"2025-06-08T18:10:35.414218",
-#             "sign":"SAyrX9w1NyDNBCmhyf0To1ainSuM1+ItFdIiP5CcoejpQBHKoGZIpcus6qEsoCRQS0JC7KUd7EQKW0F2r4HQBQ=="
+#             "timestamp":"2025-06-09T00:09:39.352941",
+#             "sign":"WuURyIUzhER5e35qFq1/lTdTemVx26L/Jf8/LjVGN3aMUmZ+ZyEmNTtQ8L6H5ZMvofi+g0J5uqQmt6R6yvvbBA=="
 #          },
-#          "hash":"f94f385916e7a929050c9a40fc0f7d0d638b242d"
+#          "block_hash":"a89ea39dec1cda6b84a8edabe096d61953d9eff6"
 #       },
 #       {
 #          "block_id":2,
-#          "previous_hash":"f94f385916e7a929050c9a40fc0f7d0d638b242d",
+#          "previous_hash":"a89ea39dec1cda6b84a8edabe096d61953d9eff6",
+#          "nonce":2780,
 #          "transaction":{
-#             "source":"CSep8ZbivnvOVIeHsbE8vRlqKo1SsvaPENfjIBZ6U0g=",
-#             "target":"CSep8ZbivnvOVIeHsbE8vRlqKo1SsvaPENfjIBZ6U0g=",
+#             "tx_id":"1fa3373f-7bc8-4f05-928c-259eca0377db",
+#             "source":"xV6+BqGWtM7Dd4Tfq5WPjeKK3GjLhc4pRBP4Qrg7ro8=",
+#             "target":"xV6+BqGWtM7Dd4Tfq5WPjeKK3GjLhc4pRBP4Qrg7ro8=",
 #             "amount":100.0,
 #             "description":"pepe",
-#             "timestamp":"2025-06-08T18:10:49.866175",
-#             "sign":"XUuWE4c5syDKJ4nPy4gnf3W/9TKQ4oEfjqDOkx3AdO+xlpFv8nk7V9dWcptZWsC+kzWmfWrXMOoIPS0aCEnDDg=="
+#             "timestamp":"2025-06-09T00:09:42.453014",
+#             "sign":"B+rYyiLSTfoGgusvzN71nu03cwmpRnVhHXGnHK3MdSozZEwzybJycDw3kKBliH/bWupTDJdivxutiPawGmHCCA=="
 #          },
-#          "hash":"7624847ef589d96a8843ae49e6c42a534c13bab1"
+#          "block_hash":"1eb08647341cce5717ae2b6c9cece2da9ce1c138"
 #       },
 #       {
 #          "block_id":3,
-#          "previous_hash":"7624847ef589d96a8843ae49e6c42a534c13bab1",
+#          "previous_hash":"1eb08647341cce5717ae2b6c9cece2da9ce1c138",
+#          "nonce":656,
 #          "transaction":{
-#             "source":"j3Tdh/PMwPIif6pGo3cjSrnNbVev9bsRsenS4TvfV60=",
-#             "target":"j3Tdh/PMwPIif6pGo3cjSrnNbVev9bsRsenS4TvfV60=",
+#             "tx_id":"ad44e64d-cfa2-4725-87f8-f1b4b70d6e09",
+#             "source":"y4Wy+PbXFJ7Vry1ok8TMfHXmAd3FJk4Attzi0VMvOVw=",
+#             "target":"y4Wy+PbXFJ7Vry1ok8TMfHXmAd3FJk4Attzi0VMvOVw=",
 #             "amount":100.0,
 #             "description":"pepe",
-#             "timestamp":"2025-06-08T18:10:33.643420",
-#             "sign":"x4osJAlm1q0yIuryvOQj+6KTjVjE8dfqBGCS6ewMDnGzA8jjUGp9g3ndRrgI2tIKX97aDQ8rQsMDYPD9XCFfCg=="
+#             "timestamp":"2025-06-09T00:09:56.850979",
+#             "sign":"Do3SGLosoLDhM4Y/0K+p/63umnum/prGPmfSO4CP/R2va7y0VXMy16Ix1utldtlOzKD3TyT+JUk1Qlylb0xcCA=="
 #          },
-#          "hash":"d90664fd4c23a2f0305de31da68df7799a99fdb8"
+#          "block_hash":"c3392b7f7204bd841e056ce5ed39843242f0789f"
 #       },
 #       {
 #          "block_id":4,
-#          "previous_hash":"d90664fd4c23a2f0305de31da68df7799a99fdb8",
+#          "previous_hash":"c3392b7f7204bd841e056ce5ed39843242f0789f",
+#          "nonce":6182,
 #          "transaction":{
-#             "source":"m0e31ylDM2QpSaN6JYyK8kZkypK9PouicVJtU6kRXL8=",
-#             "target":"m0e31ylDM2QpSaN6JYyK8kZkypK9PouicVJtU6kRXL8=",
+#             "tx_id":"a8b76703-b5bc-45b7-9dcb-c4f9d3de6e50",
+#             "source":"cBMZl2sU2UvUhhz2Ucli3Y5u6IGz12VnFhJPKlZ6ukk=",
+#             "target":"cBMZl2sU2UvUhhz2Ucli3Y5u6IGz12VnFhJPKlZ6ukk=",
 #             "amount":100.0,
 #             "description":"pepe",
-#             "timestamp":"2025-06-08T18:10:33.029499",
-#             "sign":"9MPNufMSMZa+4G/NSTI9zyjlFaogdHkNTIUOa+a1Z3fr75/MYT8OMzUX5Rpk7cEZt82DlB9HixfXYmrFzrd4AQ=="
+#             "timestamp":"2025-06-09T00:09:57.349771",
+#             "sign":"WQR7etdKrYn9vC0lA7k59CTbAJgiu/27MkMlZjvD0WnJwm5XIlZLD3tdLKTjCRmJ19gVnOUI+B7X35EWtcjQCQ=="
 #          },
-#          "hash":"3ee47021083270d2ef27c2eea8c3e69ced394bd5"
+#          "block_hash":"681b28347df9840fb95378eea8b2bd260acb6cab"
+#       },
+#       {
+#          "block_id":5,
+#          "previous_hash":"681b28347df9840fb95378eea8b2bd260acb6cab",
+#          "nonce":11080,
+#          "transaction":{
+#             "tx_id":"8aaf96a1-3d48-49f7-b3c2-77d395cc6544",
+#             "source":"RpWlzU8R/FN/6t7cAMGQXz8ZpMAIbus2zqXfjXovNzw=",
+#             "target":"RpWlzU8R/FN/6t7cAMGQXz8ZpMAIbus2zqXfjXovNzw=",
+#             "amount":100.0,
+#             "description":"pepe",
+#             "timestamp":"2025-06-09T00:09:56.310636",
+#             "sign":"5dvSnh3YVFYvOaxg8rVFLBrhpFGb1ZShhlhOcZmxGbSii0KEtpuVfYEv1pPCynLCIkOmdWulCIXVALYSX2seDw=="
+#          },
+#          "block_hash":"56b66089db86d4fa1d5be60f485677400203241c"
 #       }
 #    ]
 # }
 
-## Validador
-# Cuando se obtenga la blockchain ver si  se puede validar que este bien encadenada que cumpla cel hash con lo que hashea
-# pensar lo del previous_hash, como obtenerlo, por ahí pensaba el coordiandor te manda todas las TX y el preious_hash, 
-# a medida que el worker las va procesando tener lo que sería el previous_hash en una variable e ir actualizandola a medida que procesa y consumirla 
 
 ## Coordinador cuando inserta -------- tener lo siguiente en cuenta, ver que ondis con esto
 # La tearea es el input y la transaccion es el input
 # Tanto source como target son el mismo
+
+# Ver si se puede modificar el validate_register_tx.py para que trabaja parelo tal vez, o que lance workers para ayudarlo a procesar de forma distribuida
+
+## Validador
+# Cuando se obtenga la blockchain ver si  se puede validar que este bien encadenada que cumpla con el block_hash con lo que hashea
 
 
 ## RELOJ para sincro
@@ -132,4 +161,3 @@ print("Response:", response.json())
 
 ### IN_PROGRESS
 
-# Ver lo del PREFIX y challenge, capaz es mejor pasarlo coordiando - worker y trabajarlo en la tx
