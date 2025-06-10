@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from app.routes import router as nct_router
 from utils.logger import logger
+from .routes import router as coordinador_router
 
 app = FastAPI(title="Nodo Coordinador (NCT)")
 
+app.include_router(coordinador_router, prefix="/nct")
 @app.on_event("startup")
 def startup_event():
     logger.info("NCT Service started")

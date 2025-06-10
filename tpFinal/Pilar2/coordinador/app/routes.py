@@ -3,6 +3,8 @@ import time
 import uuid
 import json
 from fastapi import APIRouter, Request, HTTPException, Query
+from typing import List, Dict
+from utils.helper import REDIS_CLIENT as redis_client
 
 from utils.logger import logger
 from utils.rabbitmq_client import publish_new_transaction, RabbitMQClient
@@ -247,3 +249,23 @@ async def get_workers_results(limit: int = 100):
         logger.exception("Error al obtener transacciones pendientes desde Redis")
         raise HTTPException(status_code=500, detail="Error interno del servidor")
 
+@router.get("/heartbeats", response_model=List[Dict[str, int]])
+def get_heartbeats():
+    """
+    Devuelve una lista de workers activos y su TTL restante en segundos.
+    Cada clave en Redis tiene el formato 'heartbeat:{worker_id}' con un EXPIRE.
+    """
+    try:
+        # En producción es mejor usar SCAN que KEYS para no bloquear Redis
+        keys = list(redis_client.scan_iter("heartbeat:*"))
+        heartbeats = []
+        for key in keys:
+            # key es un byte-string o str: 'heartbeat:worker123'
+            worker_id = key.split(":", 1)[1]
+            ttl = redis_client.ttl(key)  # segundos restantes
+            if ttl and ttl > 0:
+                heartbeats.append({"worker_id": worker_id, "ttl": ttl})
+        return heartbeats
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al leer heartbeats: {e}")
