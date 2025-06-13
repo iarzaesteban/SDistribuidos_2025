@@ -24,11 +24,16 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
-                  key: user
+                  key: rabbitmq-username
             - name: RABBITMQ_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
-                  key: password
+                  key: rabbitmq-password
             - name: COORDINATOR_URL
               value: "http://coordinator:11111"
+          resources:
+            requests:
+              cpu: "200m"
+            limits:
+              cpu: "500m"
