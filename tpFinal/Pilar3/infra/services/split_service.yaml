@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: split
+spec:
+  selector:
+    app: split
+  ports:
+    - port: 80
+      targetPort: 5001
+  type: ClusterIP

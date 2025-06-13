@@ -30,12 +30,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
-                  key: user
+                  key: rabbitmq-username  # corregido
             - name: RABBITMQ_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
-                  key: password
+                  key: rabbitmq-password  # corregido
 ---
 apiVersion: v1
 kind: Service
@@ -48,4 +48,4 @@ spec:
     - protocol: TCP
       port: 11111
       targetPort: 11111
-  type: ClusterIP
+  type: LoadBalancer
