@@ -10,6 +10,7 @@ from utils.logger import logger
 from utils.rabbitmq_client import publish_new_transaction, RabbitMQClient
 from utils.helper import (Transaction,
                           TransactionStatus,
+                          WorkerRegistration,
                           REDIS_CLIENT,
                           EARRING_QUEUE,
                           get_last_block_hash,
@@ -126,17 +127,18 @@ def get_monitoring_tasks():
 
 
 @router.post("/register-worker")
-async def register_worker(request: Request):
-    data = await request.json()
-    worker_ip = data.get("worker_ip")
-
-    if not worker_ip:
+async def register_worker(worker: WorkerRegistration):
+    if not worker.ip:
         raise HTTPException(status_code=400, detail="worker_ip es requerido")
-
+    
     try:
-        REDIS_CLIENT.sadd("registered_workers", worker_ip)
-        logger.info(f"Worker registrado: {worker_ip}")
-        return {"status": "ok", "worker_ip": worker_ip}
+        redis_key = f"worker_registered:{worker.ip}"
+        worker_data = {
+            "type": worker.type, 
+            "port": str(worker.port)}
+        REDIS_CLIENT.hmset(redis_key, worker_data)
+        logger.info(f"Worker registrado: {worker.ip}")
+        return {"status": "ok", "worker_ip": worker.ip, "port": worker.port}
     except Exception as e:
         logger.error(f"Error al registrar worker: {e}")
         raise HTTPException(status_code=500, detail="No se pudo registrar el worker")
@@ -145,8 +147,15 @@ async def register_worker(request: Request):
 @router.get("/registered-workers")
 async def get_registered_workers():
     try:
-        workers = REDIS_CLIENT.smembers("registered_workers")
-        return {"registered_workers": list(workers)}
+        worker_keys = REDIS_CLIENT.keys("worker_registered:*")
+        workers = []
+
+        for key in worker_keys:
+            ip = key.split(":")[1]
+            worker_info = REDIS_CLIENT.hgetall(key)
+            workers.append({"ip": ip, "info": worker_info})
+
+        return {"status": "success", "workers": workers}
     except Exception as e:
         logger.error(f"Error al obtener workers: {e}")
         raise HTTPException(status_code=500, detail="Error interno")
@@ -250,6 +259,7 @@ async def get_workers_results(limit: int = 100):
     except Exception as e:
         logger.exception("Error al obtener transacciones pendientes desde Redis")
         raise HTTPException(status_code=500, detail="Error interno del servidor")
+
 
 @router.get("/heartbeats", response_model=List[Dict[str, int]])
 def get_heartbeats():

@@ -42,6 +42,11 @@ REDIS_CLIENT = redis.Redis(
         decode_responses=True
     )
 
+class WorkerRegistration(BaseModel):
+    ip: str
+    type: str
+    port: int
+    
 def get_last_block_hash():
     # Obtengo todas las keys de bloques
     block_keys = REDIS_CLIENT.keys("block:*")

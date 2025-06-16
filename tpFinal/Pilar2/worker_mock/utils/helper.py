@@ -7,8 +7,16 @@ from typing import List, Optional
 from utils.logger import logger
 
 COORDINATOR_URL = os.getenv("COORDINATOR_URL", "http://nct:8989")
+POOL_URL = os.getenv("POOL_URL", "http://pool:9998")
+
 RESOLUTION_INTERVAL = int(os.getenv("RESOLUTION_INTERVAL", 5 * 60))
 MOCK_TASK_WORKER  = os.getenv("MOCK_TASK_WORKER", False)
+
+# Configuración por entorno
+WORKER_MODE = os.getenv("WORKER_MODE", "COORDINADOR")
+WORKER_TYPE = os.getenv("WORKER_TYPE", "CPU")
+
+
 
 def get_container_ip():
     return socket.gethostbyname(socket.gethostname())

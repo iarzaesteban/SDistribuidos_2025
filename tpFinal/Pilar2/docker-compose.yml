@@ -73,18 +73,58 @@ services:
     env_file:
       - .env
 
-  worker-mock:
+  pool:
     build:
-      context: ./worker_mock
+      context: ./pool
       dockerfile: deploy/Dockerfile
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "9998:9998"
     depends_on:
       nct:
         condition: service_healthy
     env_file:
       - .env
+
+  # worker-mock:
+  #   build:
+  #     context: ./worker_mock
+  #     dockerfile: deploy/Dockerfile
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     nct:
+  #       condition: service_healthy
+  #   environment:
+  #     - WORKER_NAME=worker-mock-1
+  #   env_file:
+  #     - .env
+
+
+  worker-mock-1:
+    build:
+      context: ./worker_mock
+      dockerfile: deploy/Dockerfile
+    env_file:
+      - .env
+    environment:
+      - WORKER_NAME=worker-mock-1
+    depends_on:
+      nct:
+        condition: service_healthy
+
+  # worker-mock-2:
+  #   build:
+  #     context: ./worker_mock
+  #     dockerfile: deploy/Dockerfile
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - WORKER_NAME=worker-mock-2
+  #   depends_on:
+  #     nct:
+  #       condition: service_healthy
 
   # worker-real:
   #   build:
