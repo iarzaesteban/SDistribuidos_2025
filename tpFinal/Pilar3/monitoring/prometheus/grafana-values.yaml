@@ -1,0 +1,15 @@
+# grafana-values.yaml
+grafana:
+  service:
+    type: LoadBalancer
+
+  sidecar:
+    datasources:
+      enabled: true
+
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      url: http://loki.monitoring.svc.cluster.local:3100
+      access: proxy
+

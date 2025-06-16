@@ -14,6 +14,8 @@ apply:
 	terraform apply -var-file=terraform.tfvars -auto-approve
 
 all:
+	gcloud auth login
+	gcloud config set project blockchainsd2025
 	gcloud container clusters get-credentials blockchain-cluster --zone southamerica-east1-a --project blockchainsd2025
 	terraform fmt
 	terraform init
