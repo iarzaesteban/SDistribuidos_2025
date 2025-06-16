@@ -136,13 +136,8 @@ print("Response:", response.json())
 # Tener algun raner que borre los workers que tiene registrado en coordiandor registrados, le pegariamos a un health y si no devuelve, lo borramos 
 
 
-# Moficiar el tema del hash_previo se manda toda la TX con el last_hash y el minero tiene que irse guardarse el ultimo hash para ir encadenando
-
-#Endpoint para buscar tx por hash.
-# Pool de tx, se deberia regfistrar los worker y determinar su potencia
-
 # Lógica del ttl para los workers, lo explico nehu, recordar que fue
-#manejar sincronizmos coordinador
  
 
 ### IN_PROGRESS
+# Pool de tx, se deberia regfistrar los worker y determinar su potencia
