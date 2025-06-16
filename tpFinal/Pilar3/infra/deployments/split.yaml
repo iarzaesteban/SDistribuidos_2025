@@ -15,23 +15,32 @@ spec:
         app: split
     spec:
       containers:
-        - name: split
-          image: gcr.io/blockchainsd2025/split:latest
-          ports:
-            - containerPort: 5001
-          env:
-            - name: RABBITMQ_HOST
-              value: "rabbitmq"
-            - name: RABBITMQ_USER
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-secret
-                  key: user
-            - name: RABBITMQ_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-secret
-                  key: password
+      - name: split
+        image: gcr.io/blockchainsd2025/split:latest
+        ports:
+        - containerPort: 5001
+        env:
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: user
+        - name: RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: password
+        volumeMounts:
+        - name: gcp-sa-vol
+          mountPath: /etc/gcp
+          readOnly: true
+      volumes:
+      - name: gcp-sa-vol
+        secret:
+          secretName: gcp-sa-secret
+          items:
+          - key: key.json
+            path: key.json
 ---
 apiVersion: v1
 kind: Service
@@ -41,7 +50,7 @@ spec:
   selector:
     app: split
   ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 5001
+  - protocol: TCP
+    port: 80
+    targetPort: 5001
   type: ClusterIP

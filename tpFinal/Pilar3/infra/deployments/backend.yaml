@@ -15,25 +15,32 @@ spec:
         app: backend
     spec:
       containers:
-        - name: backend
-          image: gcr.io/blockchainsd2025/backend:latest
-          ports:
-            - containerPort: 8000
-          env:
-            - name: REDIS_HOST
-              value: "redis"
-            - name: RABBITMQ_HOST
-              value: "rabbitmq"
-            - name: RABBITMQ_USER
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-secret
-                  key: user
-            - name: RABBITMQ_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-secret
-                  key: password
+      - name: backend
+        image: gcr.io/blockchainsd2025/backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: user
+        - name: RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: password
+        volumeMounts:
+        - name: gcp-sa-vol
+          mountPath: /etc/gcp
+          readOnly: true
+      volumes:
+      - name: gcp-sa-vol
+        secret:
+          secretName: gcp-sa-secret
+          items:
+          - key: key.json
+            path: key.json
 ---
 apiVersion: v1
 kind: Service
@@ -43,7 +50,7 @@ spec:
   selector:
     app: backend
   ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 8000
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
   type: ClusterIP

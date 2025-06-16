@@ -15,25 +15,32 @@ spec:
         app: worker-mock
     spec:
       containers:
-        - name: worker-mock
-          image: gcr.io/blockchainsd2025/worker_mock:latest
-          env:
-            - name: RABBITMQ_HOST
-              value: "rabbitmq"
-            - name: RABBITMQ_USER
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-secret
-                  key: rabbitmq-username
-            - name: RABBITMQ_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-secret
-                  key: rabbitmq-password
-            - name: COORDINATOR_URL
-              value: "http://coordinator:11111"
-          resources:
-            requests:
-              cpu: "200m"
-            limits:
-              cpu: "500m"
+      - name: worker-mock
+        image: gcr.io/blockchainsd2025/worker_mock:latest
+        env:
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: user
+        - name: RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: password
+        resources:
+          requests:
+            cpu: 200m
+          limits:
+            cpu: 500m
+        volumeMounts:
+        - name: gcp-sa-vol
+          mountPath: /etc/gcp
+          readOnly: true
+      volumes:
+      - name: gcp-sa-vol
+        secret:
+          secretName: gcp-sa-secret
+          items:
+          - key: key.json
+            path: key.json

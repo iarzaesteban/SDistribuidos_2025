@@ -15,20 +15,27 @@ spec:
         app: worker-real
     spec:
       containers:
-        - name: worker-real
-          image: gcr.io/blockchainsd2025/worker_real:latest
-          env:
-            - name: RABBITMQ_HOST
-              value: "rabbitmq"
-            - name: RABBITMQ_USER
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-secret
-                  key: user
-            - name: RABBITMQ_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-secret
-                  key: password
-            - name: COORDINATOR_URL
-              value: "http://coordinator:11111"
+      - name: worker-real
+        image: gcr.io/blockchainsd2025/worker_real:latest
+        env:
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: user
+        - name: RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: password
+        volumeMounts:
+        - name: gcp-sa-vol
+          mountPath: /etc/gcp
+          readOnly: true
+      volumes:
+      - name: gcp-sa-vol
+        secret:
+          secretName: gcp-sa-secret
+          items:
+          - key: key.json
+            path: key.json
