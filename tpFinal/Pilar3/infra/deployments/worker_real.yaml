@@ -1,3 +1,4 @@
+# worker-real.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,12 +23,18 @@ spec:
           valueFrom:
             secretKeyRef:
               name: rabbitmq-secret
-              key: user
+              key: rabbitmq-username
         - name: RABBITMQ_PASSWORD
           valueFrom:
             secretKeyRef:
               name: rabbitmq-secret
-              key: password
+              key: rabbitmq-password
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
         volumeMounts:
         - name: gcp-sa-vol
           mountPath: /etc/gcp
