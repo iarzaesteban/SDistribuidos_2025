@@ -59,83 +59,60 @@ print("Response:", response.json())
 
 
 # {
-#    "Blockchain":[
-#       {
-#          "block_id":1,
-#          "previous_hash":"GENESIS",
-#          "nonce":837,
-#          "transaction":{
-#             "tx_id":"41720bb6-52df-4d57-b735-1d8ffcac9f1c",
-#             "source":"0y/Rn5iEPMG4KFGVS19lQtVPToXT6GUfBDw+gW4d49A=",
-#             "target":"0y/Rn5iEPMG4KFGVS19lQtVPToXT6GUfBDw+gW4d49A=",
-#             "amount":100.0,
-#             "description":"pepe",
-#             "timestamp":"2025-06-09T00:09:39.352941",
-#             "sign":"WuURyIUzhER5e35qFq1/lTdTemVx26L/Jf8/LjVGN3aMUmZ+ZyEmNTtQ8L6H5ZMvofi+g0J5uqQmt6R6yvvbBA=="
-#          },
-#          "block_hash":"a89ea39dec1cda6b84a8edabe096d61953d9eff6"
-#       },
-#       {
-#          "block_id":2,
-#          "previous_hash":"a89ea39dec1cda6b84a8edabe096d61953d9eff6",
-#          "nonce":2780,
-#          "transaction":{
-#             "tx_id":"1fa3373f-7bc8-4f05-928c-259eca0377db",
-#             "source":"xV6+BqGWtM7Dd4Tfq5WPjeKK3GjLhc4pRBP4Qrg7ro8=",
-#             "target":"xV6+BqGWtM7Dd4Tfq5WPjeKK3GjLhc4pRBP4Qrg7ro8=",
-#             "amount":100.0,
-#             "description":"pepe",
-#             "timestamp":"2025-06-09T00:09:42.453014",
-#             "sign":"B+rYyiLSTfoGgusvzN71nu03cwmpRnVhHXGnHK3MdSozZEwzybJycDw3kKBliH/bWupTDJdivxutiPawGmHCCA=="
-#          },
-#          "block_hash":"1eb08647341cce5717ae2b6c9cece2da9ce1c138"
-#       },
-#       {
-#          "block_id":3,
-#          "previous_hash":"1eb08647341cce5717ae2b6c9cece2da9ce1c138",
-#          "nonce":656,
-#          "transaction":{
-#             "tx_id":"ad44e64d-cfa2-4725-87f8-f1b4b70d6e09",
-#             "source":"y4Wy+PbXFJ7Vry1ok8TMfHXmAd3FJk4Attzi0VMvOVw=",
-#             "target":"y4Wy+PbXFJ7Vry1ok8TMfHXmAd3FJk4Attzi0VMvOVw=",
-#             "amount":100.0,
-#             "description":"pepe",
-#             "timestamp":"2025-06-09T00:09:56.850979",
-#             "sign":"Do3SGLosoLDhM4Y/0K+p/63umnum/prGPmfSO4CP/R2va7y0VXMy16Ix1utldtlOzKD3TyT+JUk1Qlylb0xcCA=="
-#          },
-#          "block_hash":"c3392b7f7204bd841e056ce5ed39843242f0789f"
-#       },
-#       {
-#          "block_id":4,
-#          "previous_hash":"c3392b7f7204bd841e056ce5ed39843242f0789f",
-#          "nonce":6182,
-#          "transaction":{
-#             "tx_id":"a8b76703-b5bc-45b7-9dcb-c4f9d3de6e50",
-#             "source":"cBMZl2sU2UvUhhz2Ucli3Y5u6IGz12VnFhJPKlZ6ukk=",
-#             "target":"cBMZl2sU2UvUhhz2Ucli3Y5u6IGz12VnFhJPKlZ6ukk=",
-#             "amount":100.0,
-#             "description":"pepe",
-#             "timestamp":"2025-06-09T00:09:57.349771",
-#             "sign":"WQR7etdKrYn9vC0lA7k59CTbAJgiu/27MkMlZjvD0WnJwm5XIlZLD3tdLKTjCRmJ19gVnOUI+B7X35EWtcjQCQ=="
-#          },
-#          "block_hash":"681b28347df9840fb95378eea8b2bd260acb6cab"
-#       },
-#       {
-#          "block_id":5,
-#          "previous_hash":"681b28347df9840fb95378eea8b2bd260acb6cab",
-#          "nonce":11080,
-#          "transaction":{
-#             "tx_id":"8aaf96a1-3d48-49f7-b3c2-77d395cc6544",
-#             "source":"RpWlzU8R/FN/6t7cAMGQXz8ZpMAIbus2zqXfjXovNzw=",
-#             "target":"RpWlzU8R/FN/6t7cAMGQXz8ZpMAIbus2zqXfjXovNzw=",
-#             "amount":100.0,
-#             "description":"pepe",
-#             "timestamp":"2025-06-09T00:09:56.310636",
-#             "sign":"5dvSnh3YVFYvOaxg8rVFLBrhpFGb1ZShhlhOcZmxGbSii0KEtpuVfYEv1pPCynLCIkOmdWulCIXVALYSX2seDw=="
-#          },
-#          "block_hash":"56b66089db86d4fa1d5be60f485677400203241c"
-#       }
-#    ]
+#     "Blockchain": [
+#         {
+#             "block_id": 0,
+#             "transaction": {
+#                 "block_name": "GENESIS"
+#             },
+#             "block_hash": "75d1b55850fced2b185594ccbbe74d0afb29b769"
+#         },
+#         {
+#             "block_id": 1,
+#             "previous_hash": "75d1b55850fced2b185594ccbbe74d0afb29b769",
+#             "nonce": 17511,
+#             "transaction": {
+#                 "tx_id": "83809746-2547-4782-af0b-a4b29e6341f4",
+#                 "source": "BjIQ4QQAJT93CpL5bStm4zmfenHXgtJFyu73IzqoJ74=",
+#                 "target": "BjIQ4QQAJT93CpL5bStm4zmfenHXgtJFyu73IzqoJ74=",
+#                 "amount": 100.0,
+#                 "description": "pepe",
+#                 "timestamp": "2025-06-16T03:43:54.543092",
+#                 "sign": "axDIDgmZ67I/jQnUP64ZS/Pb8TKmDmZQPizSijtjekKH1owrqWIos5HIR/xFiwxt6jBlnGYyXVmIg1dchNklCg=="
+#             },
+#             "block_hash": "00091bd2f844b9e8b2668b601209c07c1daef5cd"
+#         },
+#         {
+#             "block_id": 2,
+#             "previous_hash": "00091bd2f844b9e8b2668b601209c07c1daef5cd",
+#             "nonce": 1832,
+#             "transaction": {
+#                 "tx_id": "f8c45a6c-2057-4497-9de2-8b1cbb8a7f95",
+#                 "source": "1Jh+cmcgTmz6HrgPCQ8gOKWhPCCGButoZfElibyawHM=",
+#                 "target": "1Jh+cmcgTmz6HrgPCQ8gOKWhPCCGButoZfElibyawHM=",
+#                 "amount": 100.0,
+#                 "description": "pepe",
+#                 "timestamp": "2025-06-16T03:43:53.861236",
+#                 "sign": "7+H0++pH9qtbdv1MRTGyjU2QvKGrplsmyp/hOMlWxG3aVLxZxtrqabGOF7SRdWUYSBFUb1Y0HAdj4NAK41ELAA=="
+#             },
+#             "block_hash": "00085121dc6a9392a1353cff77617d4b7ef76a2a"
+#         },
+#         {
+#             "block_id": 3,
+#             "previous_hash": "00085121dc6a9392a1353cff77617d4b7ef76a2a",
+#             "nonce": 5121,
+#             "transaction": {
+#                 "tx_id": "6339bf45-28d8-44eb-bbe1-63347b516adb",
+#                 "source": "3RTzBKqPWMRRtNn9nHB8F2GCqJNbGjrWJl4Ouqco1x8=",
+#                 "target": "3RTzBKqPWMRRtNn9nHB8F2GCqJNbGjrWJl4Ouqco1x8=",
+#                 "amount": 100.0,
+#                 "description": "pepe",
+#                 "timestamp": "2025-06-16T03:43:55.098744",
+#                 "sign": "qp3xWpjEUrv7z/7cDf6BwNvB2gwlJRrVvycLug9xk2BY4RiBTXghUl0GJv0RMTh1LO+rNhsNSRd58jmukgUpCQ=="
+#             },
+#             "block_hash": "0000c62fb68622419430a6efb846bcc16807a4f3"
+#         }
+#     ]
 # }
 
 
@@ -150,7 +127,7 @@ print("Response:", response.json())
 
 
 ## RELOJ para sincro
-# Ver el tema de sincro de relojes
+# Ver el tema de sincro de relojes, coordinador será el encargado de manejar los tiempos, si llega algo en un tiemmpo que no tiene habilitado ese endpoint patea
 
 
 # Falta tambien lo del pool
@@ -159,5 +136,13 @@ print("Response:", response.json())
 # Tener algun raner que borre los workers que tiene registrado en coordiandor registrados, le pegariamos a un health y si no devuelve, lo borramos 
 
 
-### IN_PROGRESS
+# Moficiar el tema del hash_previo se manda toda la TX con el last_hash y el minero tiene que irse guardarse el ultimo hash para ir encadenando
 
+#Endpoint para buscar tx por hash.
+# Pool de tx, se deberia regfistrar los worker y determinar su potencia
+
+# Lógica del ttl para los workers, lo explico nehu, recordar que fue
+#manejar sincronizmos coordinador
+ 
+
+### IN_PROGRESS

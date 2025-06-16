@@ -33,16 +33,20 @@ async def register():
             logger.error(f"[ERROR] No se pudo registrar el worker: {e}")
 
 
-async def mine_transactions(transactions: list[Transaction]) -> list[Transaction]:
+async def mine_transactions(transactions: list[Transaction], starting_previous_hash: str) -> list[Transaction]:
     logger.info(f"[MINING] Iniciando minería de {len(transactions)} transacciones por {MINING_DURATION} segundos...")
     start_time = time.time()
     mined = []
+    previous_hash = starting_previous_hash
+
     for tx in transactions:
         if time.time() - start_time > MINING_DURATION:
             logger.warning(f"[MINING] Tiempo agotado.")
             break
         tx.worker_ip = WORKER_IP
+        tx.hash_previo = previous_hash
         tx.mine(prefix=tx.challenge, mock_result=MOCK_TASK_WORKER)
+        previous_hash = tx.hash
         mined.append(tx)
     return mined
 
@@ -53,7 +57,7 @@ async def publish_results(transactions: list[Transaction]):
         try:
             async with session.post(PUBLISH_URL, json=payload) as resp:
                 data = await resp.json()
-                print(f"[PUBLISH] {data}")
+                logger.info(f"[PUBLISH] {data}")
         except Exception as e:
             logger.error(f"[ERROR] No se pudo publicar resultados: {e}")
 
@@ -63,11 +67,17 @@ async def mining_cycle():
     while True:
         logger.info("\n[CYCLE] Nuevo ciclo de minería iniciado")
         
-        transactions = fetch_transactions()
+        fetched_previous_hash, transactions = fetch_transactions()
         if not transactions:
             logger.warning("[CYCLE] No hay transacciones pendientes.")
-        
-        mined_transactions = await mine_transactions(transactions)
+            await asyncio.sleep(WAIT_DURATION)
+            continue
+        if fetched_previous_hash is None:
+            logger.error("Error, no se envió el previos_hash")
+            await asyncio.sleep(WAIT_DURATION)
+            continue
+
+        mined_transactions = await mine_transactions(transactions, fetched_previous_hash)
 
         await publish_results(mined_transactions)
 

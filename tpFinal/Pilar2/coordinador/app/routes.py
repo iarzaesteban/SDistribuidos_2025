@@ -12,10 +12,11 @@ from utils.helper import (Transaction,
                           TransactionStatus,
                           REDIS_CLIENT,
                           EARRING_QUEUE,
+                          get_last_block_hash,
                           IN_PROGRESS_QUEUE)
 
 rabbit_earring = RabbitMQClient(queue_name=EARRING_QUEUE)
-                                   
+                                 
 router = APIRouter()
 
 @router.get("/")
@@ -116,8 +117,9 @@ def get_monitoring_tasks():
     """
     try:
         tasks = REDIS_CLIENT.hgetall("monitoring_transactions")
+        last_hash = get_last_block_hash()
         decoded_tasks = [json.loads(v) for v in tasks.values()]
-        return {"transactions": decoded_tasks}
+        return {"last_hash": last_hash,"transactions": decoded_tasks}
     except Exception as e:
         logger.error(f"Error al obtener transacciones de monitoreo: {str(e)}")
         return {"error": "No se pudieron obtener las transacciones"}
@@ -178,7 +180,7 @@ async def get_blockchain(
         block_keys = REDIS_CLIENT.keys("block:*")
         if not block_keys:
             return {"Blockchain": []}
-
+        
         blocks = []
         for key in block_keys:
             raw_data = REDIS_CLIENT.get(key)

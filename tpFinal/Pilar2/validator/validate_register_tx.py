@@ -110,34 +110,28 @@ async def handle_transaction(tx: Transaction, is_winner: bool):
         
     logger.info("EL hash ES válido")
     if is_winner:
-        # Tomo el último bloque de la blockchain
-        last_block = REDIS_CLIENT.get("last_block") or "GENESIS"
-
         # Obtenemos un ID único e incremental para el bloque
         if not REDIS_CLIENT.exists("block_id_counter"):
             REDIS_CLIENT.set("block_id_counter", 0)
         block_id = REDIS_CLIENT.incr("block_id_counter")
-
         # Preparo el nuevo bloque
         block_data = {
             "block_id": block_id,
-            "previous_hash": last_block,
+            "previous_hash": tx.hash_previo,
             "nonce": tx.nonce,
             "transaction": tx.to_dict()
         }
-        # Obtengo el hash del bloque para encadenar
-        block_hash = hashlib.sha1(json.dumps(block_data).encode()).hexdigest()
 
         # Agregamos nuevo bloque
-        REDIS_CLIENT.set(f"block:{block_hash}", json.dumps(block_data))
-        REDIS_CLIENT.set("last_block", block_hash)
+        REDIS_CLIENT.set(f"block:{tx.hash}", json.dumps(block_data))
+        REDIS_CLIENT.set("last_block", tx.hash)
 
         # Borramos la transacción porque ya fue precesada
         REDIS_CLIENT.hdel("monitoring_transactions", tx_id)
         rabbit_in_progress.delete_message_by_txid(tx_id)
         REDIS_CLIENT.delete(key)
         
-        logger.info(f"Tx {tx_id} validada y agregada al bloque {block_hash}")
+        logger.info(f"Tx {tx_id} validada y agregada al bloque {tx.hash}")
 
 
 async def process_transactions_and_reward(txs_by_worker: Dict[str, List[Transaction]]):

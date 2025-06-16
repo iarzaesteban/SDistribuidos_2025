@@ -4,6 +4,7 @@ import socket
 import requests
 from pydantic import BaseModel
 from typing import List, Optional
+from utils.logger import logger
 
 COORDINATOR_URL = os.getenv("COORDINATOR_URL", "http://nct:8989")
 RESOLUTION_INTERVAL = int(os.getenv("RESOLUTION_INTERVAL", 5 * 60))
@@ -60,7 +61,7 @@ class Transaction(BaseModel):
                 hash_ = self.compute_hash()
                 if hash_.startswith(prefix):
                     self.hash = hash_
-                    print(f"Transacción minada: {self.hash} con nonce {self.nonce}")
+                    logger.info(f"Transacción minada: {self.hash} con nonce {self.nonce}")
                     return self.hash
                 self.nonce += 1
 
@@ -69,7 +70,8 @@ def fetch_transactions() -> List[Transaction]:
         url = f"{COORDINATOR_URL}/monitoring-tasks"
         response = requests.get(url)
         data = response.json()
-        return [Transaction(**tx) for tx in data.get("transactions", [])]
+        previos_hash = data.get("last_hash", "")
+        return previos_hash, [Transaction(**tx) for tx in data.get("transactions", [])]
     except Exception as e:
-        print(f"[ERROR] No se pudo consultar el coordinador: {e}")
+        logger.error(f"[ERROR] No se pudo consultar el coordinador: {e}")
         return []

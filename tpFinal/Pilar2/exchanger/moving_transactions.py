@@ -15,21 +15,9 @@ from utils.helper import (
 )
 
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", 30))
-BLOCKCHAIN_KEY = os.getenv("BLOCKCHAIN_KEY", "blockchain") 
 
 # Flag para terminar de forma limpia
 shutdown_event = threading.Event()
-
-def get_last_block_hash():
-    try:
-        last_block_json = REDIS_CLIENT.lindex(BLOCKCHAIN_KEY, -1)
-        if not last_block_json:
-            return "GENESIS"
-        last_block = json.loads(last_block_json)
-        return last_block.get("hash_actual", "GENESIS")
-    except Exception as e:
-        logger.error(f"No se pudo obtener el último bloque de la blockchain: {e}")
-        return "GENESIS"
 
 
 def move_transactions():
@@ -42,7 +30,7 @@ def move_transactions():
         try:
             logger.info("Inicio de ciclo de escaneo de mensajes")
             moved = 0
-            last_hash = get_last_block_hash()
+            
 
             while not shutdown_event.is_set():
                 method_frame, _, body = rabbit_earring.channel.basic_get(
@@ -53,7 +41,6 @@ def move_transactions():
 
                 try:
                     tx = json.loads(body)
-                    tx["hash_previo"] = last_hash # Aca le damos el último hash previo o GENESIS
                     tx["status"] = TransactionStatus.en_proceso.value
                     tx["challenge"] = CHALLENGE
                     rabbit_in_progress.publish(tx)

@@ -1,6 +1,7 @@
 import os
 import pika
 import redis
+import json
 import hashlib
 import time
 import base64
@@ -32,6 +33,7 @@ RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
 RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
 EARRING_QUEUE = os.getenv("EARRING_QUEUE", "earrings") # Cola pendietes
 IN_PROGRESS_QUEUE = os.getenv("IN_PROGRESS_QUEUE", "in_progress")  # Cola En Curso  
+BLOCKCHAIN_KEY = os.getenv("BLOCKCHAIN_KEY", "blockchain") 
 
 REDIS_CLIENT = redis.Redis(
         host=REDIS_HOST,
@@ -39,6 +41,49 @@ REDIS_CLIENT = redis.Redis(
         password=REDIS_PASSWORD,
         decode_responses=True
     )
+
+def get_last_block_hash():
+    # Obtengo todas las keys de bloques
+    block_keys = REDIS_CLIENT.keys("block:*")
+    if not block_keys:
+        return None  # No hay bloques en la blockchain
+
+    blocks = []
+    for key in block_keys:
+        raw_data = REDIS_CLIENT.get(key)
+        if raw_data:
+            block = json.loads(raw_data)
+            block["block_hash"] = key.decode().replace("block:", "") if isinstance(key, bytes) else key.replace("block:", "")
+            blocks.append(block)
+
+    # Ordenar por block_id
+    blocks.sort(key=lambda b: int(b.get("block_id", 0)))
+
+    # Tomar el último bloque
+    last_block = blocks[-1]
+    return last_block.get("block_hash")
+
+
+def generate_genesis_block():
+    block_data = {
+        "block_id": 0,
+        "transaction": {
+            "block_name": "GENESIS"
+        }
+    }
+    # Obtenemos el hash del bloque para encadenar
+    block_hash = hashlib.sha1(json.dumps(block_data).encode()).hexdigest()
+
+    # Verificamos si el bloque GENESIS ya existe en Redis
+    if REDIS_CLIENT.exists(f"block:{block_hash}"):
+        logger.info("El bloque GENESIS ya existe en la cadena.")
+        return
+    
+    # Agregamos bloque GENESIS
+    REDIS_CLIENT.set(f"block:{block_hash}", json.dumps(block_data))
+    REDIS_CLIENT.set("last_block", block_hash)
+    logger.info("Se encadenó el bloque GENESIS")
+
 
 class TransactionStatus(str, Enum):
     pendiente = "pendiente"
@@ -116,6 +161,8 @@ class Transaction(BaseModel):
             "timestamp": self.timestamp,
             "sign": self.sign
         }
+
+
 
 def validar_hash(tx: Transaction) -> bool:
     tx_data = f"{tx.tx_id}|{tx.source}|{tx.target}|{tx.amount}|{tx.description}|{tx.timestamp}|{tx.sign}|{tx.hash_previo}|{tx.nonce}"
