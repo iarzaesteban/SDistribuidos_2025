@@ -1,5 +1,7 @@
+import json
 import asyncio
 import aiohttp
+import hashlib
 import time
 import uvicorn
 from fastapi import FastAPI, Request
@@ -117,6 +119,54 @@ async def mining_cycle():
 
         logger.info(f"[WAIT] Esperando {WAIT_DURATION} segundos para próxima ronda...\n")
         await asyncio.sleep(WAIT_DURATION)
+
+
+def proof_of_work(tx: Transaction, nonce_start, nonce_end, difficulty):
+    prefix = '0' * difficulty
+    for nonce in range(nonce_start, nonce_end + 1):
+        tx.nonce = nonce
+        new_hash = tx.compute_hash()
+        if new_hash.startswith(prefix):
+            tx.hash = new_hash
+            return nonce, new_hash
+    return None, None
+
+
+@app.post("/mine-task")
+async def mine_task(request: Request):
+    data = await request.json()
+    logger.info(f"DATA ES  {data}")
+    
+    tx_id = data["tx_id"]
+    hash_previo = data["hash_previo"]
+    nonce_start = data["nonce_start"]
+    nonce_end = data["nonce_end"]
+    difficulty = data["difficulty"]
+    tx = Transaction(**data['transaction'])
+    tx.worker_ip = WORKER_IP
+    tx.hash_previo = hash_previo
+
+    logger.info(f"[WORKER] Minando tx_id={tx_id} desde nonce {nonce_start} hasta {nonce_end} con dificultad {difficulty}...")
+
+    nonce, valid_hash = proof_of_work(tx, nonce_start, nonce_end, difficulty)
+    
+    if valid_hash:
+        logger.info(f"[WORKER] Transacción {tx_id} resuelta con nonce {nonce}, hash {valid_hash}")
+        # Enviar resultado al Pool
+        async with aiohttp.ClientSession() as session:
+            payload = {
+                "worker_ip": get_container_ip(),
+                "transaction": tx.dict(),
+            }
+            try:
+                async with session.post(f"{POOL_URL}/mine-result", json=payload) as resp:
+                    logger.info(f"[WORKER] Resultado enviado al Pool: {await resp.text()}")
+            except Exception as e:
+                logger.error(f"[WORKER] Error enviando resultado al Pool: {e}")
+    else:
+        logger.info(f"[WORKER] No se encontró solución para tx_id {tx_id} en rango asignado.")
+
+    return {"status": "done"}
 
 
 @app.post("/reward")

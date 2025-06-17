@@ -1,14 +1,12 @@
-import json
-
 from fastapi import APIRouter, Request, HTTPException, Query
 from utils.logger import logger
-from utils.helper import (WorkerRegistration,
-                          fetch_transactions,
-                          calculate_difficulty,
-                          prepare_tasks_for_workers,
-                          dispatch_tasks_to_workers,
+from utils.helper import (accepting_results,
+                          WorkerRegistration,
+                          Transaction,
+                          validar_hash,
                           REDIS_CLIENT)
 router = APIRouter()
+
 
 @router.get("/")
 def root():
@@ -59,23 +57,35 @@ def list_registered_workers():
         raise HTTPException(status_code=500, detail="Error listando workers")
 
 
+@router.post("/mine-result")
+async def mine_result(request: Request):
+    if not accepting_results:
+        logger.info("[POOL] Ventana cerrada: Resultado rechazado.")
+        return {"status": "rejected", "reason": "window_closed"}
+    
+    data = await request.json()
+    tx = Transaction(**data['transaction'])
+    worker_ip = data["worker_ip"]
+    valid = validar_hash(tx)
+    
+    if valid:
+        tx_key = f"tx:{tx.tx_id}"
 
-@router.post("/assign-tasks")
-def assign_tasks():
-    """
-    Calcula dificultad, prepara y envía tareas a workers.
-    """
-    try:
-        last_hash, transactions = fetch_transactions()
-        if not transactions:
-            return {"message": "No hay transacciones para procesar."}
+        # Verificar si la transacción ya fue resuelta
+        if REDIS_CLIENT.hget(tx_key, "status") == "resuelta":
+            logger.info(f"[POOL] Resultado ignorado: transacción {tx.tx_id} ya resuelta.")
+            return {"status": "ignored", "reason": "already_resolved"}
 
-        difficulty = calculate_difficulty()
-        tasks = prepare_tasks_for_workers(transactions, last_hash, difficulty)
-        dispatch_tasks_to_workers(tasks)
+        # Marcar la transacción como resuelta y guardar el worker que la resolvió
+        REDIS_CLIENT.hset(tx_key, mapping={
+            "status": "resuelta",
+            "resolved_by": worker_ip,
+            "transaction": tx.json()
+        })
+        logger.info(f"[POOL] Transacción {tx.tx_id} resuelta por {worker_ip} con nonce {tx.nonce}.")
 
-        return {"status": "Tareas asignadas", "tasks": tasks}
-    except Exception as e:
-        logger.error(f"Error en assign-tasks: {e}")
-        raise HTTPException(status_code=500, detail="Error al asignar tareas a los workers.")
+        # Aumentar contador de transacciones resueltas por worker
+        REDIS_CLIENT.incr(f"worker:{worker_ip}:resolved_count")
 
+        return {"status": "accepted", "tx_id": tx.tx_id}
+    return {"status": "canceled", "reason": "invalid_challenge", "tx_id": tx.tx_id}

@@ -163,7 +163,14 @@ Pool de tx, se deberia regfistrar los worker y determinar su potencia
 
 
     - Provar que mas de 1 worker se registre al pool
-    - Me falta implementar en el worker-miner el mine-task para que procese lo que el pool le manda
+    - Tengo que ver como manejar el hash_previo desde el pool al worker
+    - Sobre todo ver lo de manejar los tiempos desde el coordinador para que no se procesen 2 veces lo mismo
+
+
+
+Ver como implementar lo de manejar el hash_previo entre tx entre el pool y workers
+
+
 
 ************************************************************************************************************************************    
 IMPLEMENTACIONES:

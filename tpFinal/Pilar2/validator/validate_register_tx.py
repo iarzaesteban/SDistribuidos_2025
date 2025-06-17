@@ -153,6 +153,7 @@ async def process_transactions_and_reward(txs_by_worker: Dict[str, List[Transact
 async def monitor_pending_transactions():
     while not shutdown_event.is_set():
         try:
+            logger.info("Inicia el validador...")
             # Obtenemos todas las TXs de la lista enviadas por cada workers
             raw_txs = REDIS_CLIENT.lrange("pending_transactions", 0, -1)
             if not raw_txs:

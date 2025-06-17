@@ -1,9 +1,8 @@
 import os
 import redis
 import json
-import hashlib
-import socket
 import requests
+import hashlib
 from pydantic import BaseModel
 from typing import List, Optional
 from utils.logger import logger
@@ -27,7 +26,7 @@ REDIS_CLIENT = redis.Redis(
         password=REDIS_PASSWORD,
         decode_responses=True
     )
-
+accepting_results = True
 class WorkerRegistration(BaseModel):
     ip: str
     type: str
@@ -48,6 +47,12 @@ class Transaction(BaseModel):
     description: str
     timestamp: str
     sign: str
+
+
+def validar_hash(tx: Transaction) -> bool:
+    tx_data = f"{tx.tx_id}|{tx.source}|{tx.target}|{tx.amount}|{tx.description}|{tx.timestamp}|{tx.sign}|{tx.hash_previo}|{tx.nonce}"
+    return hashlib.sha1(tx_data.encode()).hexdigest().startswith(str(tx.challenge))
+
 
 def get_last_block_hash():
     # Obtengo todas las keys de bloques
@@ -84,13 +89,61 @@ def fetch_transactions() -> List[Transaction]:
         return []
     
 
+def handle_worker_result(result):
+    global last_hash
+    tx = Transaction(**result['transaction'])
+    last_hash = tx.hash  # Actualizar con el hash resuelto
+    logger.info(f"[POOL] Nuevo last_hash confirmado: {last_hash}")
+
+
+
+
+def prepare_task_for_workers(tx: Transaction, last_hash: str, difficulty: int):
+    worker_keys = [key for key in REDIS_CLIENT.keys("worker:*") if not key.endswith(":resolved_count")]
+
+    workers = []
+    for key in worker_keys:
+        ip = key.replace("worker:", "")
+        worker_info = REDIS_CLIENT.hgetall(key)
+
+        workers.append({
+            "ip": ip,
+            "port": worker_info.get("port", "8000"),
+            "type": worker_info.get("type", "CPU")
+        })
+
+    nonce_range_per_worker = TOTAL_NONCE_RANGE // len(workers)
+    tasks = []
+
+    nonce_start = 0
+    for worker in workers:
+        nonce_end = nonce_start + nonce_range_per_worker - 1
+
+        task = {
+            "worker_ip": worker["ip"],
+            "worker_port": worker["port"],
+            "tx_id": tx.tx_id,
+            "transaction": tx.dict(),
+            "hash_previo": last_hash,
+            "nonce_start": nonce_start,
+            "nonce_end": nonce_end,
+            "difficulty": difficulty
+        }
+
+        tasks.append(task)
+        nonce_start = nonce_end + 1
+
+    return tasks
+
+
 def calculate_difficulty():
     try:
         # Buscamos todos los workers registrados
-        worker_keys = REDIS_CLIENT.keys("worker:*")
+        # worker_keys = REDIS_CLIENT.keys("worker:*")
+        worker_keys = [key for key in REDIS_CLIENT.keys("worker:*") if not key.endswith(":resolved_count")]
+
         num_cpu = 0
         num_gpu = 0
-
         for key in worker_keys:
             worker_info = REDIS_CLIENT.hgetall(key)
             if worker_info.get("type") == "CPU":
@@ -110,7 +163,9 @@ def calculate_difficulty():
 
 def prepare_tasks_for_workers(transactions: List[Transaction], last_hash: str, difficulty: int):
     try:
-        worker_keys = REDIS_CLIENT.keys("worker:*")
+        # worker_keys = REDIS_CLIENT.keys("worker:*")
+        worker_keys = [key for key in REDIS_CLIENT.keys("worker:*") if not key.endswith(":resolved_count")]
+
         workers = []
 
         for key in worker_keys:
@@ -133,6 +188,11 @@ def prepare_tasks_for_workers(transactions: List[Transaction], last_hash: str, d
         tasks = []
 
         for tx in transactions:
+            tx_key = f"tx:{tx.tx_id}"
+            if not REDIS_CLIENT.exists(tx_key):
+                REDIS_CLIENT.hset(tx_key, mapping={"status": "pendiente", "resolved_by": "", "transaction": tx.json()})
+                logger.info(f"[POOL] Transacción {tx.tx_id} almacenada en Redis con estado 'pendiente'.")
+
             nonce_start = 0
 
             for worker in workers:
@@ -175,3 +235,30 @@ def dispatch_tasks_to_workers(tasks: List[dict]):
 
         except Exception as e:
             logger.error(f"Error enviando tarea al worker {worker_ip}: {e}")
+
+
+def publish_results_to_coordinator():
+    logger.info("[POOL] Publicando resultados al Coordinador...")
+    transactions = []
+    tx_keys = REDIS_CLIENT.keys("tx:*")
+
+    for tx_key in tx_keys:
+        tx_data = REDIS_CLIENT.hgetall(tx_key)
+        
+        transaction_json = tx_data.get("transaction", None)
+        resolved_by = tx_data.get("resolved_by", None)
+
+        if transaction_json:
+            tx = Transaction.parse_raw(transaction_json)
+            tx_dict = tx.dict()
+            tx_dict['worker_ip'] = resolved_by
+            transactions.append(tx_dict)
+
+    if transactions:
+        try:
+            response = requests.post(f"{COORDINATOR_URL}/publish-results", json={"transactions": transactions})
+            logger.info(f"[POOL] Resultados publicados: {response.text}")
+        except Exception as e:
+            logger.error(f"Error publicando resultados: {e}")
+    else:
+        logger.info("[POOL] No hay transacciones.")
