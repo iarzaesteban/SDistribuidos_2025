@@ -1,16 +1,17 @@
 import json
 import os
-import aiohttp
 import time
 import asyncio
 import signal
 import threading
-from typing import List, Dict, Optional
-from datetime import datetime
+from typing import List, Dict
 from utils.logger import logger
 from utils.rabbitmq_connection import RabbitMQClient
 from utils.helper import (wait_for_genesis_block,
+                          select_best_worker,
+                          reward_worker,
                           seconds_until_next_period,
+                          create_reward_block,
                           TransactionStatus,
                           Transaction,
                           validar_hash,
@@ -28,47 +29,6 @@ shutdown_event = threading.Event()
 
 rabbit_in_progress = RabbitMQClient(queue_name=IN_PROGRESS_QUEUE)
 
-
-def select_best_worker(txs_by_worker: Dict[str, List[Transaction]]) -> Optional[str]:
-    best_worker = None
-    best_count = 0
-    best_first_timestamp = None
-
-    for worker_ip, txs in txs_by_worker.items():
-        # Filtrar solo transacciones procesadas (las que tienen un hash válido)
-        processed_txs = [tx for tx in txs if tx.hash is not None]
-
-        if not processed_txs:
-            continue
-
-        # Ordenamos las transacciones procesadas por timestamp
-        processed_txs.sort(key=lambda tx: tx.timestamp)
-
-        count = len(processed_txs)
-        first_ts = datetime.fromisoformat(processed_txs[0].timestamp)
-
-        if (
-            count > best_count or
-            (count == best_count and first_ts < best_first_timestamp)
-        ):
-            best_worker = worker_ip
-            best_count = count
-            best_first_timestamp = first_ts
-
-    return best_worker
-
-
-async def reward_worker(winner: str, amount: float):
-    try:
-        async with aiohttp.ClientSession() as session:
-            reward_url = f"http://{winner}:8000/reward"
-            response = await session.post(reward_url, json={"amount": amount})
-            response_data = await response.json()
-            logger.info(f"Recompensa enviada a {winner}: {response_data}")
-    except Exception as e:
-        logger.error(f"[ERROR] No se pudo enviar la recompensa al worker ganador: {e}")
-
-
 def get_transaction_queue_by_id(tx_id):
     tx = rabbit_in_progress._get_message_by_txid(tx_id)
     if not tx:
@@ -76,7 +36,6 @@ def get_transaction_queue_by_id(tx_id):
         return
 
     return json.loads(tx['body'])
-
 
 async def handle_transaction(tx: Transaction, is_winner: bool):
     tx_id = tx.tx_id
@@ -118,6 +77,8 @@ async def handle_transaction(tx: Transaction, is_winner: bool):
             "block_id": block_id,
             "previous_hash": tx.hash_previo,
             "nonce": tx.nonce,
+            "miner": tx.worker_ip, # o poner el la pub del source
+            "prefix": tx.challenge,
             "transaction": tx.to_dict()
         }
 
@@ -134,19 +95,25 @@ async def handle_transaction(tx: Transaction, is_winner: bool):
 
 
 async def process_transactions_and_reward(txs_by_worker: Dict[str, List[Transaction]]):
-    # Buscamos el worker ganador
     winner = select_best_worker(txs_by_worker)
     logger.info(f"Worker ganador: {winner if winner else 'Ninguno'}")
 
-    # Procesammos todas las transacciones
     for worker_ip, txs in txs_by_worker.items():
         is_winner = (worker_ip == winner)
         for tx in txs:
             await handle_transaction(tx, is_winner)
 
-    # Si hay worker ganador, se le da la recompensa
     if winner:
+        reward_amount = round(MAX_COINS * 0.001, 4)
+        reward_block = create_reward_block(winner, reward_amount)
         await reward_worker(winner, round(MAX_COINS * 0.001, 4))
+        
+        if reward_block:
+            REDIS_CLIENT.set(f"block:{reward_block['block_hash']}", json.dumps(reward_block))
+            REDIS_CLIENT.set("last_block", reward_block['block_hash'])
+            REDIS_CLIENT.incr("block_id_counter")  # opcional si usas contador también
+
+            logger.info(f"[REWARD] Bloque de recompensa agregado para {winner} con {reward_amount} coins.")
 
 
 async def monitor_pending_transactions(genesis_config):

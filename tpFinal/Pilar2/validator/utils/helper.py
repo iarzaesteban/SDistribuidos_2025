@@ -1,14 +1,16 @@
 import os
 import json
 import pika
+import uuid
 import redis
 import time
+import aiohttp
 import hashlib
 import time
 import base64
 from pydantic import BaseModel, validator
 from enum import Enum
-from typing import Optional
+from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
@@ -160,7 +162,7 @@ def seconds_until_next_period(genesis_config):
     wait_seconds = period - seconds_in_period
     return wait_seconds
 
-    
+
 def wait_for_genesis_block(timeout=None):
     """
     Espera hasta que el bloque génesis esté presente en Redis o hasta agotar el timeout.
@@ -184,3 +186,85 @@ def wait_for_genesis_block(timeout=None):
             raise TimeoutError("Timeout esperando el bloque génesis en Redis.")
 
         time.sleep(1)
+
+
+def calculate_block_hash(block_id, previous_hash, transaction):
+    block_string = f"{block_id}{previous_hash}{json.dumps(transaction, sort_keys=True)}"
+    return hashlib.sha256(block_string.encode()).hexdigest()
+
+
+def select_best_worker(txs_by_worker: Dict[str, List[Transaction]]) -> Optional[str]:
+    best_worker = None
+    best_count = 0
+    best_first_timestamp = None
+
+    for worker_ip, txs in txs_by_worker.items():
+        # Filtrar solo transacciones procesadas (las que tienen un hash válido)
+        processed_txs = [tx for tx in txs if tx.hash is not None]
+
+        if not processed_txs:
+            continue
+
+        # Ordenamos las transacciones procesadas por timestamp
+        processed_txs.sort(key=lambda tx: tx.timestamp)
+
+        count = len(processed_txs)
+        first_ts = datetime.fromisoformat(processed_txs[0].timestamp)
+
+        if (
+            count > best_count or
+            (count == best_count and first_ts < best_first_timestamp)
+        ):
+            best_worker = worker_ip
+            best_count = count
+            best_first_timestamp = first_ts
+
+    return best_worker
+
+
+async def reward_worker(winner: str, amount: float):
+    try:
+        async with aiohttp.ClientSession() as session:
+            reward_url = f"http://{winner}:8000/reward"
+            response = await session.post(reward_url, json={"amount": amount})
+            response_data = await response.json()
+            logger.info(f"Recompensa enviada a {winner}: {response_data}")
+    except Exception as e:
+        logger.error(f"[ERROR] No se pudo enviar la recompensa al worker ganador: {e}")
+
+
+def create_reward_block(winner_ip, reward_amount):
+    last_block_hash = REDIS_CLIENT.get("last_block")
+    last_block_data = REDIS_CLIENT.get(f"block:{last_block_hash}")
+
+    if not last_block_data:
+        logger.error("No se pudo obtener el último bloque para generar recompensa.")
+        return
+
+    last_block_data = json.loads(last_block_data)
+    last_block_id = last_block_data["block_id"]
+
+    new_block_id = last_block_id + 1
+    new_tx_id = str(uuid.uuid4())
+
+    reward_tx = {
+        "tx_id": new_tx_id,
+        "source": "0000000000",  # COORDINADOR (sistema)
+        "target": winner_ip,     # worker ip ganador o k_pub del mismo
+        "amount": reward_amount,
+        "description": "Recompensa minería",
+        "timestamp": datetime.utcnow().isoformat(),
+        "sign": "-"  # Simulamos que es firmado por el sistema
+    }
+
+    new_block = {
+        "block_id": new_block_id,
+        "previous_hash": last_block_hash,
+        "nonce": 0, 
+        "miner": "COORDINATOR",  # o quien vos quieras
+        "prefix": "reward",
+        "transaction": reward_tx,
+        "block_hash": calculate_block_hash(new_block_id, last_block_hash, reward_tx)  # función propia
+    }
+
+    return new_block

@@ -63,7 +63,7 @@ print("Response:", response.json())
 #     "Blockchain": [
 #         {
 #             "block_id": 0,
-#             "timestamp": 1750206335,
+#             "timestamp": 1750275970,
 #             "transaction": {
 #                 "block_name": "GENESIS"
 #             },
@@ -75,55 +75,99 @@ print("Response:", response.json())
 #                 "publish_window_end": 59,
 #                 "window_period_seconds": 60
 #             },
-#             "block_hash": "ded1547cafc54950fc4dac9a3f09de8959d42eeb"
+#             "block_hash": "6042db2d05b99f563531fb58ca765821de1beb53"
 #         },
 #         {
 #             "block_id": 1,
-#             "previous_hash": "ded1547cafc54950fc4dac9a3f09de8959d42eeb",
-#             "nonce": 11574,
+#             "previous_hash": "6042db2d05b99f563531fb58ca765821de1beb53",
+#             "nonce": 1397,
+#             "miner": "172.22.0.7",
+#             "prefix": "000",
 #             "transaction": {
-#                 "tx_id": "30a95275-e74e-43cf-8a36-7737c6b50316",
-#                 "source": "MRUF5Waoi0UTpEKQAT8YbQy1di/3g/MTpNXNrI/thxg=",
-#                 "target": "MRUF5Waoi0UTpEKQAT8YbQy1di/3g/MTpNXNrI/thxg=",
+#                 "tx_id": "35f2871e-93f9-4218-9f4a-9fe72975d82e",
+#                 "source": "22074c597445c025981e31e48d49c2ce21d2fab3199e0bdf096f6e8c88c54ca7",
+#                 "target": "bGKVDm81vhcho7dVo6MlWME56kTKm+kkxqpAtBlWMUk=",
 #                 "amount": 100.0,
 #                 "description": "pepe",
-#                 "timestamp": "2025-06-18T00:25:38.036254",
-#                 "sign": "HKTLbW8uEcVbym3JDqmSnekktX6Hyz+SIFoSrUCTAEk6ej7pNwp1mzVCv8Gjh8qAUBFIup0TF0vE7VLzilaxAA=="
+#                 "timestamp": "2025-06-18T19:46:13.772404+00:00",
+#                 "sign": "NZW1T7tfAufj/8Est9Ui4FjmAaP05BQplvlECFruLzddoA9GmxRwFb6ORUVVIiAzEaonIZc4KiC8+vsjv/S+CQ=="
 #             },
-#             "block_hash": "0004ada8efd8ff56d51deef0baaf9df068ca50db"
+#             "block_hash": "00092a487b026013cf492d2e0ed25c2d93e5daca"
 #         },
 #         {
 #             "block_id": 2,
-#             "previous_hash": "0004ada8efd8ff56d51deef0baaf9df068ca50db",
-#             "nonce": 376,
+#             "previous_hash": "00092a487b026013cf492d2e0ed25c2d93e5daca",
+#             "nonce": 0,
+#             "miner": "COORDINATOR",
+#             "prefix": "reward",
 #             "transaction": {
-#                 "tx_id": "797d36ea-6c3d-4ae5-9b80-9f6a22933b61",
-#                 "source": "QOzzqVGhs0npyduHrfHyqvywKXbIcicREzBYNp344Y8=",
-#                 "target": "QOzzqVGhs0npyduHrfHyqvywKXbIcicREzBYNp344Y8=",
-#                 "amount": 100.0,
-#                 "description": "pepe",
-#                 "timestamp": "2025-06-18T00:25:37.236832",
-#                 "sign": "x6hnJlX23Hon+kQ9wsJdaX7pbw7fhBLdzPRnjYSPFvLm91mDqspQMazCEXRUU5MBO0magsAxOMuhlKD5gei1Bw=="
+#                 "tx_id": "89364d95-b3ec-4727-9a64-df8e1cb43292",
+#                 "source": "0000000000",
+#                 "target": "172.22.0.7",
+#                 "amount": 20000.0,
+#                 "description": "Recompensa minería",
+#                 "timestamp": "2025-06-18T19:48:00.421695",
+#                 "sign": "-"
 #             },
-#             "block_hash": "000ea6fe1fd4bdeb23478914867014febfb36dca"
+#             "block_hash": "493cb9f95c6963610a65c82820c5bbeb596b049259d4d0bc5a412dd0621483f5"
 #         },
 #         {
 #             "block_id": 3,
-#             "previous_hash": "000ea6fe1fd4bdeb23478914867014febfb36dca",
-#             "nonce": 1723,
+#             "previous_hash": "493cb9f95c6963610a65c82820c5bbeb596b049259d4d0bc5a412dd0621483f5",
+#             "nonce": 4063,
+#             "miner": "172.22.0.7",
+#             "prefix": "000",
 #             "transaction": {
-#                 "tx_id": "c97f0db0-3598-4632-83a9-1d31af0d91a6",
-#                 "source": "Uq0aXfoO9t2MgY337uQI/hRtVCG4SXYnVX2zc4FWQNs=",
-#                 "target": "Uq0aXfoO9t2MgY337uQI/hRtVCG4SXYnVX2zc4FWQNs=",
+#                 "tx_id": "90cb063f-e5be-4bd6-bee3-68121318d029",
+#                 "source": "2207f22c172c3cf5806d2496bebfe548eab7212c6fcf078ad9e39374a33c29a8",
+#                 "target": "hISR4k5eLsMmDcp0KP257BNnkLG/wI50hE607RdAUgc=",
 #                 "amount": 100.0,
 #                 "description": "pepe",
-#                 "timestamp": "2025-06-18T00:25:38.694900",
-#                 "sign": "0iDl4M/wUhdA0TXF7tptoqS7HvOBvxYscxPG517Hvafzg19pA9LqUMtzOtJy5CvZ+bEN3wbco4CF4QKx29lgAw=="
+#                 "timestamp": "2025-06-18T19:46:32.702290+00:00",
+#                 "sign": "DMZ7x7ysLkQKyFa3uRcLGgArXKLofJr8dIy4ZOfMF1Hyg3+R8BhY+QY3wbwNqb43q3fC2j9GLDmt4fHVOPn0DQ=="
 #             },
-#             "block_hash": "000b7a3a3dadcbb409531cf6c926014724137dea"
+#             "block_hash": "000c255b79d5591b24b1f8465d0e9910c228a461"
+#         },
+#         {
+#             "block_id": 4,
+#             "previous_hash": "000c255b79d5591b24b1f8465d0e9910c228a461",
+#             "nonce": 172,
+#             "miner": "172.22.0.7",
+#             "prefix": "000",
+#             "transaction": {
+#                 "tx_id": "9a39311f-46d1-4beb-b970-324f0cec82af",
+#                 "source": "22073c4491f529cee92440a0b5ae0d79037bcca6981c1e95513fecb788966ad4",
+#                 "target": "9RTokNLsRlKapab2h1i8mH/q0nKb++tDQPedjEN3FBc=",
+#                 "amount": 100.0,
+#                 "description": "pepe",
+#                 "timestamp": "2025-06-18T19:46:25.508413+00:00",
+#                 "sign": "kEtAelDYNdHKUO/wOwkyfMy+EaflEE0U0m0L+sUPzkG0QQNJvqOOBNDprx3QMGrEVYP5maoK6TYa2mJI3aBGAA=="
+#             },
+#             "block_hash": "000c10bd29a0bcb6107fbebaa0e61a9d4594aa0c"
+#         },
+#         {
+#             "block_id": 5,
+#             "previous_hash": "000c10bd29a0bcb6107fbebaa0e61a9d4594aa0c",
+#             "nonce": 0,
+#             "miner": "COORDINATOR",
+#             "prefix": "reward",
+#             "transaction": {
+#                 "tx_id": "3c5a2531-812e-4d89-89ee-3b45eb367a71",
+#                 "source": "0000000000",
+#                 "target": "172.22.0.7",
+#                 "amount": 20000.0,
+#                 "description": "Recompensa minería",
+#                 "timestamp": "2025-06-18T19:49:00.529608",
+#                 "sign": "-"
+#             },
+#             "block_hash": "d7d059bf8b4c26b5e7f2c5fa9c9aca9c28e90b50bada02ef62492bdcf84020ab"
 #         }
 #     ]
 # }
+
+
+
+        
 
 """
 ## Coordinador 
@@ -138,7 +182,8 @@ print("Response:", response.json())
 ## Validador
 - Cuando se obtenga la blockchain ver si  se puede validar que este bien encadenada que cumpla con el block_hash 
 con lo que hashea
-- Ver si se puede modificar el validate_register_tx.py para que trabaja parelo tal vez, o que lance workers para ayudarlo a procesar de forma distribuida
+- Ver si se puede modificar el validate_register_tx.py para que trabaja parelo tal vez, o que lance workers para 
+ayudarlo a procesar de forma distribuida
 
 """
 
