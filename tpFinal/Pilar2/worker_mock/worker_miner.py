@@ -135,7 +135,6 @@ def get_current_window(genesis_config):
 
         
 async def mining_cycle():
-    await register()
     global GENESIS_BLOCK
     config = GENESIS_BLOCK['config']
 

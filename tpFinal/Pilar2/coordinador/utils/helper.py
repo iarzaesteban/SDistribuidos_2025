@@ -7,7 +7,7 @@ import time
 import base64
 from typing import Optional
 from enum import Enum
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, validator
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
@@ -147,12 +147,13 @@ class Transaction(BaseModel):
         """
         try:
             # Decodificamos la clave pública
-            pub_key_bytes = base64.b64decode(self.source)
+            pub_key_bytes = bytes.fromhex(self.source)
             public_key = Ed25519PublicKey.from_public_bytes(pub_key_bytes)
-
+            
             # Verificamos rango de timestamp
             timestamp_dt = datetime.fromisoformat(self.timestamp)
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
+
             if timestamp_dt > now + timedelta(seconds=30):
                 logger.warning("Timestamp en el futuro.")
                 return False
@@ -162,15 +163,14 @@ class Transaction(BaseModel):
 
             # Armamos mensaje con el mismo orden que el cliente
             message = f"{self.source}{self.target}{self.amount}{self.description}{self.timestamp}".encode()
-
-            # Decodificamos la firma
             signature_bytes = base64.b64decode(self.sign)
-
-            # Verificamos la firma
             public_key.verify(signature_bytes, message)
-            logger.info("Verify succefully")
+
+            logger.info("Firma verificada correctamente.")
             return True
-        except (InvalidSignature, ValueError):
+           
+        except (InvalidSignature, ValueError) as e:
+            logger.error(f"Error en verificación: {e}")
             return False
 
         
@@ -183,7 +183,6 @@ class Transaction(BaseModel):
             "timestamp": self.timestamp,
             "sign": self.sign
         }
-
 
 
 def validar_hash(tx: Transaction) -> bool:

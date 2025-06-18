@@ -1,10 +1,10 @@
 import base64
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives import serialization
 
-timestamp = datetime.utcnow().isoformat()
+timestamp = datetime.now(timezone.utc).isoformat()
 
 # 1. Crear par de claves (solo la primera vez, después podés guardarlas en archivo)
 private_key = Ed25519PrivateKey.generate()
@@ -55,6 +55,7 @@ response = requests.post(url, json=tx)
 # 5. Mostrar resultado
 print("Status Code:", response.status_code)
 print("Response:", response.json())
+
 
 
 
@@ -129,7 +130,6 @@ print("Response:", response.json())
 - La tearea es el input y la transaccion es el input
 - Tanto source como target son el mismo
 - Meter el premio encadenado a la blockchain
-- Hacer endpoint para obtner tx por hash
 
 """
 
