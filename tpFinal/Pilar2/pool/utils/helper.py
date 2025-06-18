@@ -6,6 +6,7 @@ import hashlib
 from pydantic import BaseModel
 from typing import List, Optional
 from utils.logger import logger
+from utils.state import State
 
 #Config blockchain
 MAX_MINING_TRYS = int(os.getenv("MAX_MINING_TRYS", 3))
@@ -19,14 +20,12 @@ COORDINATOR_URL = os.getenv("COORDINATOR_URL", "http://nct:8989")
 TOTAL_NONCE_RANGE = int(os.getenv("TOTAL_NONCE_RANGE", 4_000_000))
 BASE_DIFFICULTY = int(os.getenv("BASE_DIFFICULTY", 4))
 
-
 REDIS_CLIENT = redis.Redis(
         host=REDIS_HOST,
         port=REDIS_PORT,
         password=REDIS_PASSWORD,
         decode_responses=True
     )
-accepting_results = True
 class WorkerRegistration(BaseModel):
     ip: str
     type: str
@@ -76,6 +75,7 @@ def get_last_block_hash():
     return last_block.get("block_hash")
 
 
+
 def fetch_transactions() -> List[Transaction]:
     try:
         url = f"{COORDINATOR_URL}/monitoring-tasks"
@@ -88,14 +88,6 @@ def fetch_transactions() -> List[Transaction]:
         logger.error(f"[ERROR] No se pudo consultar el coordinador: {e}")
         return []
     
-
-def handle_worker_result(result):
-    global last_hash
-    tx = Transaction(**result['transaction'])
-    last_hash = tx.hash  # Actualizar con el hash resuelto
-    logger.info(f"[POOL] Nuevo last_hash confirmado: {last_hash}")
-
-
 
 
 def prepare_task_for_workers(tx: Transaction, last_hash: str, difficulty: int):
@@ -139,7 +131,6 @@ def prepare_task_for_workers(tx: Transaction, last_hash: str, difficulty: int):
 def calculate_difficulty():
     try:
         # Buscamos todos los workers registrados
-        # worker_keys = REDIS_CLIENT.keys("worker:*")
         worker_keys = [key for key in REDIS_CLIENT.keys("worker:*") if not key.endswith(":resolved_count")]
 
         num_cpu = 0
@@ -161,65 +152,6 @@ def calculate_difficulty():
         return BASE_DIFFICULTY
 
 
-def prepare_tasks_for_workers(transactions: List[Transaction], last_hash: str, difficulty: int):
-    try:
-        # worker_keys = REDIS_CLIENT.keys("worker:*")
-        worker_keys = [key for key in REDIS_CLIENT.keys("worker:*") if not key.endswith(":resolved_count")]
-
-        workers = []
-
-        for key in worker_keys:
-            ip = key.replace("worker:", "")
-            worker_info = REDIS_CLIENT.hgetall(key)
-
-            workers.append({
-                "ip": ip,
-                "port": worker_info.get("port", "8000"),
-                "type": worker_info.get("type", "CPU")
-            })
-
-        if not workers:
-            logger.warning("[POOL] No hay workers registrados.")
-            return []
-
-        # Parámetros de Nonce
-        nonce_range_per_worker = TOTAL_NONCE_RANGE // len(workers)
-
-        tasks = []
-
-        for tx in transactions:
-            tx_key = f"tx:{tx.tx_id}"
-            if not REDIS_CLIENT.exists(tx_key):
-                REDIS_CLIENT.hset(tx_key, mapping={"status": "pendiente", "resolved_by": "", "transaction": tx.json()})
-                logger.info(f"[POOL] Transacción {tx.tx_id} almacenada en Redis con estado 'pendiente'.")
-
-            nonce_start = 0
-
-            for worker in workers:
-                nonce_end = nonce_start + nonce_range_per_worker - 1
-
-                task = {
-                    "worker_ip": worker["ip"],
-                    "worker_port": worker["port"],
-                    "tx_id": tx.tx_id,
-                    "transaction": tx.dict(),
-                    "hash_previo": last_hash,
-                    "nonce_start": nonce_start,
-                    "nonce_end": nonce_end,
-                    "difficulty": difficulty
-                }
-
-                tasks.append(task)
-                nonce_start = nonce_end + 1
-
-        logger.info(f"[POOL] Preparadas {len(tasks)} tareas para workers.")
-        return tasks
-
-    except Exception as e:
-        logger.error(f"Error preparando tareas: {e}")
-        return []
-
-
 def dispatch_tasks_to_workers(tasks: List[dict]):
     for task in tasks:
         try:
@@ -235,6 +167,35 @@ def dispatch_tasks_to_workers(tasks: List[dict]):
 
         except Exception as e:
             logger.error(f"Error enviando tarea al worker {worker_ip}: {e}")
+
+
+def push_tx_to_queue(tx: Transaction):
+    REDIS_CLIENT.rpush("tx_queue", tx.json())
+
+
+def pop_tx_from_queue():
+    tx_json = REDIS_CLIENT.lpop("tx_queue")
+    if tx_json:
+        return Transaction.parse_raw(tx_json)
+    return None
+
+
+def queue_length():
+    return REDIS_CLIENT.llen("tx_queue")
+
+
+def assign_next_tx_to_workers():
+    if queue_length() == 0:
+        logger.info("[POOL] No hay transacciones en la cola Redis.")
+        return
+
+    tx = pop_tx_from_queue()
+    difficulty = calculate_difficulty()
+    logger.info(f"TENEMOS EL LAST  HASH IGUAL A {State.last_hash}")
+    tasks = prepare_task_for_workers(tx, State.last_hash, difficulty)
+    dispatch_tasks_to_workers(tasks)
+
+    logger.info(f"[POOL] Tarea enviada para tx_id={tx.tx_id}")
 
 
 def publish_results_to_coordinator():
@@ -257,8 +218,17 @@ def publish_results_to_coordinator():
     if transactions:
         try:
             response = requests.post(f"{COORDINATOR_URL}/publish-results", json={"transactions": transactions})
-            logger.info(f"[POOL] Resultados publicados: {response.text}")
+            
+            if response.status_code == 200:
+                logger.info(f"[POOL] Resultados publicados exitosamente: {response.text}")
+                # Limpiar Redis solo si la publicación fue exitosa
+                for tx_key in tx_keys:
+                    REDIS_CLIENT.delete(tx_key)
+                logger.info("[POOL] Transacciones eliminadas de Redis tras publicación exitosa.")
+            else:
+                logger.warning(f"[POOL] Falló publicación en Coordinador con código {response.status_code}: {response.text}")
+
         except Exception as e:
-            logger.error(f"Error publicando resultados: {e}")
+            logger.error(f"[POOL] Error publicando resultados: {e}")
     else:
-        logger.info("[POOL] No hay transacciones.")
+        logger.info("[POOL] No hay transacciones para publicar.")

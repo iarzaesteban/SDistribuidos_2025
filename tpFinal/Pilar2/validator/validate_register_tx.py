@@ -3,23 +3,22 @@ import os
 import aiohttp
 import time
 import asyncio
-import hashlib
 import signal
 import threading
 from typing import List, Dict, Optional
 from datetime import datetime
 from utils.logger import logger
 from utils.rabbitmq_connection import RabbitMQClient
-from utils.helper import (
-    TransactionStatus,
-    Transaction,
-    validar_hash,
-    IN_PROGRESS_QUEUE,
-    REDIS_CLIENT,
-    MAX_COINS,
-    MAX_MINING_TRYS,
-    CHALLENGE
-)
+from utils.helper import (wait_for_genesis_block,
+                          seconds_until_next_period,
+                          TransactionStatus,
+                          Transaction,
+                          validar_hash,
+                          IN_PROGRESS_QUEUE,
+                          REDIS_CLIENT,
+                          MAX_COINS,
+                          MAX_MINING_TRYS,
+                          CHALLENGE)
 
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", 30))
 BLOCKCHAIN_KEY = os.getenv("BLOCKCHAIN_KEY", "blockchain") 
@@ -114,7 +113,7 @@ async def handle_transaction(tx: Transaction, is_winner: bool):
         if not REDIS_CLIENT.exists("block_id_counter"):
             REDIS_CLIENT.set("block_id_counter", 0)
         block_id = REDIS_CLIENT.incr("block_id_counter")
-        # Preparo el nuevo bloque
+        # Preparamos el nuevo bloque
         block_data = {
             "block_id": block_id,
             "previous_hash": tx.hash_previo,
@@ -150,14 +149,18 @@ async def process_transactions_and_reward(txs_by_worker: Dict[str, List[Transact
         await reward_worker(winner, round(MAX_COINS * 0.001, 4))
 
 
-async def monitor_pending_transactions():
+async def monitor_pending_transactions(genesis_config):
     while not shutdown_event.is_set():
         try:
-            logger.info("Inicia el validador...")
-            # Obtenemos todas las TXs de la lista enviadas por cada workers
+            wait_time = seconds_until_next_period(genesis_config)
+            logger.info(f"Esperando {wait_time} segundos hasta el próximo inicio de período...")
+            await asyncio.sleep(wait_time)
+
+            logger.info("Inicio de período alcanzado. Validando transacciones...")
+
             raw_txs = REDIS_CLIENT.lrange("pending_transactions", 0, -1)
             if not raw_txs:
-                await asyncio.sleep(POLL_INTERVAL)
+                logger.info("No hay transacciones pendientes.")
                 continue
 
             REDIS_CLIENT.delete("pending_transactions")
@@ -184,9 +187,12 @@ def handle_shutdown(signum, frame):
 
 
 def start_validator_loop():
+    genesis_block = wait_for_genesis_block(timeout=None)
+    genesis_config = genesis_block.get("config", {})
+
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(monitor_pending_transactions())
+    loop.run_until_complete(monitor_pending_transactions(genesis_config))
 
 
 if __name__ == "__main__":

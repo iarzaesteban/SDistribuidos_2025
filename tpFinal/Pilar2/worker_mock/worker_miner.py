@@ -19,11 +19,13 @@ from utils.helper import (
 
 app = FastAPI()
 
+GENESIS_BLOCK = None
+
+
 TOTAL_REWARD = 0.0  # Sumamos los premios del worker
 WORKER_IP = get_container_ip() # Obtnemos la ip del container
 REGISTER_URL = f"{COORDINATOR_URL}/register-worker"
 PUBLISH_URL = f"{COORDINATOR_URL}/publish-results"
-
 MINING_DURATION = 60 # Duracion del procesamiento de mineria, luego publicar (1 min)
 WAIT_DURATION = 30
 
@@ -31,6 +33,7 @@ WAIT_DURATION = 30
 if WORKER_MODE == "COORDINADOR":
     REGISTER_URL = f"{COORDINATOR_URL}/register-worker"
     PUBLISH_URL = f"{COORDINATOR_URL}/publish-results"
+    GENESIS_BLOCK_URL = f"{COORDINATOR_URL}/genesis-block"
 elif WORKER_MODE == "POOL":
     REGISTER_URL = f"{POOL_URL}/register-worker"
     PUBLISH_URL = None 
@@ -58,6 +61,20 @@ async def wait_for_service(url: str, timeout: int = 5):
             await asyncio.sleep(timeout)
 
 
+async def fetch_genesis_block():
+    global GENESIS_BLOCK
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(GENESIS_BLOCK_URL) as resp:
+                if resp.status == 200:
+                    GENESIS_BLOCK = await resp.json()
+                    logger.info(f"[GENESIS] Bloque génesis recibido: {json.dumps(GENESIS_BLOCK, indent=2)}")
+                else:
+                    logger.error(f"[GENESIS] Fallo al obtener bloque génesis. Status: {resp.status}")
+        except Exception as e:
+            logger.error(f"[GENESIS] Error al obtener bloque génesis: {e}")
+
+
 async def register():
     payload = {"ip": WORKER_IP, "type": WORKER_TYPE, "port": 8000}
     async with aiohttp.ClientSession() as session:
@@ -65,6 +82,7 @@ async def register():
             async with session.post(REGISTER_URL, json=payload) as resp:
                 data = await resp.json()
                 logger.info(f"[REGISTER] {data}")
+                await fetch_genesis_block()
         except Exception as e:
             logger.error(f"[ERROR] No se pudo registrar el worker: {e}")
 
@@ -98,27 +116,63 @@ async def publish_results(transactions: list[Transaction]):
             logger.error(f"[ERROR] No se pudo publicar resultados: {e}")
 
 
+def get_current_window(genesis_config):
+    period = genesis_config['window_period_seconds']
+    monitoring_start = genesis_config['monitoring_window_start']
+    monitoring_end = genesis_config['monitoring_window_end']
+    publish_start = genesis_config['publish_window_start']
+    publish_end = genesis_config['publish_window_end']
+
+    now = int(time.time())
+    seconds_in_period = now % period
+
+    if monitoring_start <= seconds_in_period <= monitoring_end:
+        return 'monitoring'
+    elif publish_start <= seconds_in_period <= publish_end:
+        return 'publishing'
+    else:
+        return 'waiting'
+
+        
 async def mining_cycle():
     await register()
+    global GENESIS_BLOCK
+    config = GENESIS_BLOCK['config']
+
+    fetched_previous_hash = None
+    transactions = []
+    already_fetched = False
+    already_published = False
+    last_window = None
+
     while True:
-        logger.info("\n[CYCLE] Nuevo ciclo de minería iniciado")
-        
-        fetched_previous_hash, transactions = fetch_transactions()
-        if not transactions:
-            logger.warning("[CYCLE] No hay transacciones pendientes.")
-            await asyncio.sleep(WAIT_DURATION)
-            continue
-        if fetched_previous_hash is None:
-            logger.error("Error, no se envió el previos_hash")
-            await asyncio.sleep(WAIT_DURATION)
-            continue
+        current_window = get_current_window(config)
 
-        mined_transactions = await mine_transactions(transactions, fetched_previous_hash)
+        if current_window != last_window:
+            already_fetched = False
+            already_published = False
+            last_window = current_window
 
-        await publish_results(mined_transactions)
+        if current_window == 'monitoring' and not already_fetched:
+            logger.info(f"[WORKER-{WORKER_IP}] Ventana MONITOREO activa: solicitando transacciones.")
+            fetched_previous_hash, transactions = fetch_transactions()
+            if not transactions:
+                logger.warning(f"[WORKER-{WORKER_IP}] No se encontraron transacciones.")
+            else:
+                logger.info(f"[WORKER-{WORKER_IP}] {len(transactions)} transacciones obtenidas.")
+            already_fetched = True
 
-        logger.info(f"[WAIT] Esperando {WAIT_DURATION} segundos para próxima ronda...\n")
-        await asyncio.sleep(WAIT_DURATION)
+        elif current_window == 'publishing' and transactions and not already_published:
+            logger.info(f"[WORKER-{WORKER_IP}] Ventana PUBLICACIÓN activa: publicando resultados.")
+            if fetched_previous_hash is None:
+                logger.error(f"[WORKER-{WORKER_IP}] No hay previous_hash para minar.")
+            else:
+                mined_transactions = await mine_transactions(transactions, fetched_previous_hash)
+                await publish_results(mined_transactions)
+                transactions = []
+            already_published = True
+
+        await asyncio.sleep(0.5)
 
 
 def proof_of_work(tx: Transaction, nonce_start, nonce_end, difficulty):

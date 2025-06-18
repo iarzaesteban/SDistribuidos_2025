@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Request, HTTPException, Query
 from utils.logger import logger
-from utils.helper import (accepting_results,
+from utils.state import State
+from utils.helper import (assign_next_tx_to_workers,
                           WorkerRegistration,
                           Transaction,
                           validar_hash,
                           REDIS_CLIENT)
 router = APIRouter()
-
 
 @router.get("/")
 def root():
@@ -59,33 +59,36 @@ def list_registered_workers():
 
 @router.post("/mine-result")
 async def mine_result(request: Request):
-    if not accepting_results:
+    if not State.accepting_results:
         logger.info("[POOL] Ventana cerrada: Resultado rechazado.")
         return {"status": "rejected", "reason": "window_closed"}
-    
+
     data = await request.json()
     tx = Transaction(**data['transaction'])
     worker_ip = data["worker_ip"]
+    logger.info("***************************************")
     valid = validar_hash(tx)
-    
+    logger.info(f" data em mine result vbebe  es --> {data}")
+    logger.info(f" valid es --> {valid}")
+    logger.info("***************************************")
     if valid:
         tx_key = f"tx:{tx.tx_id}"
 
-        # Verificar si la transacción ya fue resuelta
         if REDIS_CLIENT.hget(tx_key, "status") == "resuelta":
-            logger.info(f"[POOL] Resultado ignorado: transacción {tx.tx_id} ya resuelta.")
+            logger.info(f"[POOL] Transacción {tx.tx_id} ya resuelta.")
             return {"status": "ignored", "reason": "already_resolved"}
 
-        # Marcar la transacción como resuelta y guardar el worker que la resolvió
         REDIS_CLIENT.hset(tx_key, mapping={
             "status": "resuelta",
             "resolved_by": worker_ip,
             "transaction": tx.json()
         })
-        logger.info(f"[POOL] Transacción {tx.tx_id} resuelta por {worker_ip} con nonce {tx.nonce}.")
 
-        # Aumentar contador de transacciones resueltas por worker
-        REDIS_CLIENT.incr(f"worker:{worker_ip}:resolved_count")
+        logger.info(f"[POOL] Transacción {tx.tx_id} resuelta por {worker_ip} con nonce {tx.nonce}.")
+        State.last_hash = tx.hash
+
+        assign_next_tx_to_workers()
 
         return {"status": "accepted", "tx_id": tx.tx_id}
+
     return {"status": "canceled", "reason": "invalid_challenge", "tx_id": tx.tx_id}

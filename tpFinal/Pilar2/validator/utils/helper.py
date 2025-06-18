@@ -1,4 +1,5 @@
 import os
+import json
 import pika
 import redis
 import time
@@ -146,3 +147,40 @@ def connect_with_retry(retries=10, delay=5):
             print(f"Connection failed ({i + 1}/{retries}), retrying in {delay} seconds...")
             time.sleep(delay)
     raise Exception("Failed to connect to RabbitMQ after several retries")
+
+
+def seconds_until_next_period(genesis_config):
+    """
+    Calcula cuántos segundos faltan hasta el próximo inicio de período (ejemplo: XX:00, XX:01, etc.).
+    """
+    period = genesis_config['window_period_seconds']
+    now = int(time.time())
+    seconds_in_period = now % period
+
+    wait_seconds = period - seconds_in_period
+    return wait_seconds
+
+    
+def wait_for_genesis_block(timeout=None):
+    """
+    Espera hasta que el bloque génesis esté presente en Redis o hasta agotar el timeout.
+    """
+    start_time = time.time()
+    while True:
+        last_block_hash = REDIS_CLIENT.get("last_block")
+
+        if last_block_hash is not None:
+            block_key = f"block:{last_block_hash}"
+            result = REDIS_CLIENT.get(block_key)
+            if result is not None:
+                logger.info(f"Bloque génesis encontrado con clave: {block_key}")
+                return json.loads(result)
+            else:
+                logger.info(f"El hash del último bloque existe pero no se encontró el bloque: {block_key}")
+        else:
+            logger.info("No se encontró 'last_block' en Redis.")
+
+        if timeout and time.time() - start_time > timeout:
+            raise TimeoutError("Timeout esperando el bloque génesis en Redis.")
+
+        time.sleep(1)

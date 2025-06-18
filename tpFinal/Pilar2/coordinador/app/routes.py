@@ -1,4 +1,3 @@
-import asyncio
 import time
 import uuid
 import json
@@ -13,12 +12,22 @@ from utils.helper import (Transaction,
                           WorkerRegistration,
                           REDIS_CLIENT,
                           EARRING_QUEUE,
+                          ROUND_PERIOD,
                           get_last_block_hash,
                           IN_PROGRESS_QUEUE)
 
 rabbit_earring = RabbitMQClient(queue_name=EARRING_QUEUE)
                                  
 router = APIRouter()
+
+
+def is_monitoring_window():
+    current_second = int(time.time()) % 60
+    return 5 <= current_second <= 15
+
+def is_publish_window():
+    current_second = int(time.time()) % 60
+    return 50 <= current_second <= 59
 
 @router.get("/")
 def root():
@@ -116,6 +125,9 @@ def get_monitoring_tasks():
     """
         Devuelve todas las transacciones monitoreadas sin desencolarlas.
     """
+    if not is_monitoring_window():
+        raise HTTPException(status_code=403, detail="Ventana cerrada para obtener transacciones")
+    
     try:
         tasks = REDIS_CLIENT.hgetall("monitoring_transactions")
         last_hash = get_last_block_hash()
@@ -159,19 +171,72 @@ async def get_registered_workers():
     except Exception as e:
         logger.error(f"Error al obtener workers: {e}")
         raise HTTPException(status_code=500, detail="Error interno")
-    
-@router.get("/lb")
-async def get_last_block():
+
+
+@router.get("/genesis-block")
+def get_genesis_block():
+    """
+    Devuelve el bloque génesis completo desde Redis.
+    """
     try:
-        last_hash = REDIS_CLIENT.get("last_block")
-        if last_hash:
-            last_block = json.loads(REDIS_CLIENT.get(f"block:{last_hash}"))
-            logger.info("Último bloque:", last_block)
-        return {"Último bloque es ": last_block}
+        last_block_hash = REDIS_CLIENT.get("last_block")
+        if not last_block_hash:
+            raise HTTPException(status_code=404, detail="Bloque génesis no encontrado")
+
+        genesis_block = REDIS_CLIENT.get(f"block:{last_block_hash}")
+        if not genesis_block:
+            raise HTTPException(status_code=404, detail="Datos del bloque génesis no encontrados")
+
+        return json.loads(genesis_block)
     except Exception as e:
-        logger.error(f"Error al obtener el último bloque: {e}")
-        raise HTTPException(status_code=500, detail="Error interno")
+        logger.error(f"Error al obtener el bloque génesis: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno al obtener el bloque génesis")
+
+
+
+@router.post("/publish-results")
+async def publish_results(request: Request):
+    if not is_publish_window():
+        raise HTTPException(status_code=403, detail="Ventana cerrada para publicar resultados")
+
+    data = await request.json()
+    transactions = data.get("transactions", [])
+    if not transactions:
+        raise HTTPException(status_code=400, detail="No transactions received")
     
+    for tx_data in transactions:
+        REDIS_CLIENT.rpush("pending_transactions", json.dumps(tx_data))
+
+    logger.info(f"Recibidas {len(transactions)} transacciones para procesar más tarde.")
+    return {"status": "ok", "message": f"{len(transactions)} transacciones recibidas"}
+
+
+@router.get("/workers-results")
+async def get_workers_results(limit: int = 100):
+    """
+    Devuelve hasta `limit` transacciones pendientes almacenadas en Redis.
+    """
+    try:
+        # Obtenemos los elementos de la lista enviadas por los workers
+        raw_items = REDIS_CLIENT.lrange("pending_transactions", 0, limit - 1)
+
+        transactions = []
+        for item in raw_items:
+            try:
+                tx = json.loads(item)
+                transactions.append(tx)
+            except json.JSONDecodeError:
+                logger.warning(f"Transacción inválida en Redis: {item}")
+        
+        return {
+            "pending_transactions": transactions,
+            "count": len(transactions)
+        }
+
+    except Exception as e:
+        logger.exception("Error al obtener transacciones pendientes desde Redis")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
+
 
 @router.get("/blockchain")
 async def get_blockchain(
@@ -218,48 +283,7 @@ async def get_blockchain(
     except Exception as e:
         logger.error(f"Error al obtener la blockchain: {e}")
         raise HTTPException(status_code=500, detail="Error interno")
-
-
-@router.post("/publish-results")
-async def publish_results(request: Request):
-    data = await request.json()
-    transactions = data.get("transactions", [])
-    if not transactions:
-        raise HTTPException(status_code=400, detail="No transactions received")
     
-    for tx_data in transactions:
-        REDIS_CLIENT.rpush("pending_transactions", json.dumps(tx_data))
-
-    logger.info(f"Recibidas {len(transactions)} transacciones para procesar más tarde.")
-    return {"status": "ok", "message": f"{len(transactions)} transacciones recibidas"}
-
-
-@router.get("/workers-results")
-async def get_workers_results(limit: int = 100):
-    """
-    Devuelve hasta `limit` transacciones pendientes almacenadas en Redis.
-    """
-    try:
-        # Obtenemos los elementos de la lista enviadas por los workers
-        raw_items = REDIS_CLIENT.lrange("pending_transactions", 0, limit - 1)
-
-        transactions = []
-        for item in raw_items:
-            try:
-                tx = json.loads(item)
-                transactions.append(tx)
-            except json.JSONDecodeError:
-                logger.warning(f"Transacción inválida en Redis: {item}")
-        
-        return {
-            "pending_transactions": transactions,
-            "count": len(transactions)
-        }
-
-    except Exception as e:
-        logger.exception("Error al obtener transacciones pendientes desde Redis")
-        raise HTTPException(status_code=500, detail="Error interno del servidor")
-
 
 @router.get("/heartbeats", response_model=List[Dict[str, int]])
 def get_heartbeats():
@@ -281,3 +305,19 @@ def get_heartbeats():
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al leer heartbeats: {e}")
+
+
+
+
+# @router.get("/lb")
+# async def get_last_block():
+#     try:
+#         last_hash = REDIS_CLIENT.get("last_block")
+#         if last_hash:
+#             last_block = json.loads(REDIS_CLIENT.get(f"block:{last_hash}"))
+#             logger.info("Último bloque:", last_block)
+#         return {"Último bloque es ": last_block}
+#     except Exception as e:
+#         logger.error(f"Error al obtener el último bloque: {e}")
+#         raise HTTPException(status_code=500, detail="Error interno")
+    

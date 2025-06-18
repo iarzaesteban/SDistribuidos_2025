@@ -35,6 +35,13 @@ EARRING_QUEUE = os.getenv("EARRING_QUEUE", "earrings") # Cola pendietes
 IN_PROGRESS_QUEUE = os.getenv("IN_PROGRESS_QUEUE", "in_progress")  # Cola En Curso  
 BLOCKCHAIN_KEY = os.getenv("BLOCKCHAIN_KEY", "blockchain") 
 
+#Windows times
+# WINDOW_DURATION = int(os.getenv("WINDOW_DURATION", 15))
+ROUND_PERIOD = int(os.getenv("ROUND_PERIOD", 60))
+# PUBLISH_WINDOW_START = int(os.getenv("PUBLISH_WINDOW_START", 50))
+# PUBLISH_WINDOW_DURATION = int(os.getenv("PUBLISH_WINDOW_DURATION", 10))
+
+
 REDIS_CLIENT = redis.Redis(
         host=REDIS_HOST,
         port=REDIS_PORT,
@@ -72,22 +79,32 @@ def get_last_block_hash():
 def generate_genesis_block():
     block_data = {
         "block_id": 0,
+        "timestamp": int(time.time()),
         "transaction": {
             "block_name": "GENESIS"
+        },
+        "config": {
+            "max_tries_per_tx": 6,
+            "monitoring_window_start": 5,
+            "monitoring_window_end": 15,
+            "publish_window_start": 50,
+            "publish_window_end": 59,
+            "window_period_seconds": 60
         }
     }
-    # Obtenemos el hash del bloque para encadenar
-    block_hash = hashlib.sha1(json.dumps(block_data).encode()).hexdigest()
+
+    # Calculamos el hash del bloque
+    block_hash = hashlib.sha1(json.dumps(block_data, sort_keys=True).encode()).hexdigest()
 
     # Verificamos si el bloque GENESIS ya existe en Redis
     if REDIS_CLIENT.exists(f"block:{block_hash}"):
         logger.info("El bloque GENESIS ya existe en la cadena.")
         return
-    
-    # Agregamos bloque GENESIS
+
+    # Almacenamos bloque GENESIS
     REDIS_CLIENT.set(f"block:{block_hash}", json.dumps(block_data))
     REDIS_CLIENT.set("last_block", block_hash)
-    logger.info("Se encadenó el bloque GENESIS")
+    logger.info("Se encadenó el bloque GENESIS con hash: {}".format(block_hash))
 
 
 class TransactionStatus(str, Enum):
