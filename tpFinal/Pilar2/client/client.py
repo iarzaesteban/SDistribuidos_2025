@@ -229,6 +229,7 @@ COORDINADOR
         Ejemplo: http://localhost:8989/blockchain (Todos los bloques) --- curl http://localhost:8989/blockchain?id=2 (Bloque de ese ID) --- curl http://localhost:8989/blockchain?start=2&end=4 (Bloques entre ese rango)
     6. Endpoint que utilizan los workers o pool para obtener todas las transacciones que deben ser minadas que se encuentran en in_progress(cola rabbitmq y redis por backup) (GET /monitoring-tasks)
     7. Endpoint POST /publish-results utilizado por los workers o pool para publicar todas las TXs procesadas/minadas o no
+    8. Endpoint GET /get-block/{block_hash} este endpoint nos permite obtener una trasacción de la blockchain por block_hash 
 
 REDIS
 

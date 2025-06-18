@@ -73,6 +73,24 @@ def new_task(tx: Transaction):
     return {"message": message}
 
 
+@router.get("/get-block/{block_hash}")
+async def get_block(block_hash: str):
+    logger.info(f"Buscando bloque con hash {block_hash}")
+    
+    redis_key = f"block:{block_hash}"
+    raw_block = REDIS_CLIENT.get(redis_key)
+    
+    if raw_block:
+        try:
+            block = json.loads(raw_block)
+            return {"status": "Encontrado", "block": block}
+        except Exception as e:
+            logger.error(f"Error al parsear el bloque: {e}")
+            raise HTTPException(status_code=500, detail="Error al procesar el bloque desde Redis")
+    
+    raise HTTPException(status_code=404, detail="Bloque no encontrado")
+
+
 @router.get("/get-transaction/{tx_id}")
 async def get_transaction(tx_id: str):
     logger.info(f"Vamos a buscar la Tx {tx_id}")
