@@ -72,9 +72,8 @@ class Transaction(BaseModel):
         return hashlib.sha1(self.to_string().encode()).hexdigest()
 
     async def mine(self, prefix: str = None, mock_result: bool = False):
-        logger.info("Vino a minarrrr")
         self.nonce = 0
-        if mock_result and self.description != "pepe":
+        if mock_result:
             self.hash = None
             self.nonce = -1
             return self.hash
