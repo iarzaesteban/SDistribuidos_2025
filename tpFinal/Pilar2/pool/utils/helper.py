@@ -1,13 +1,16 @@
+import base64
 import os
 import redis
 import json
 import socket
+import asyncio
 import aiohttp
 import time
 import requests
 import hashlib
 from pydantic import BaseModel
 from typing import List, Optional
+from datetime import datetime, timezone
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
@@ -30,6 +33,10 @@ BASE_DIFFICULTY = int(os.getenv("BASE_DIFFICULTY", 4))
 MAX_WORKERS = os.cpu_count()
 TARGET_SUFFIX = None
 GENESIS_BLOCK_URL = f"{COORDINATOR_URL}/genesis-block"
+PUBLISH_URL = f"{COORDINATOR_URL}/publish-results"
+NEW_TASKS = f"{COORDINATOR_URL}/new-task"
+POOL_PRIVATE_KEY = None
+POOL_PUBLIC_KEY_HEX = None
 
 def get_container_ip():
     return socket.gethostbyname(socket.gethostname())
@@ -55,6 +62,7 @@ class WorkerRegistration(BaseModel):
 
 class Transaction(BaseModel):
     worker_ip: Optional[str] = None
+    pub_key: Optional[str] = None
     hash: Optional[str] = None
     hash_previo: Optional[str] = None
     nonce: Optional[int] = 0
@@ -157,8 +165,14 @@ def worker(_):
         res = generate_key_pair()
         if res:
             return res
-        
+
+def get_keys():
+    global POOL_PRIVATE_KEY, POOL_PUBLIC_KEY_HEX
+    logger.info(f"[POOL] Get key POOL_PUBLIC_KEY_HEX: {POOL_PUBLIC_KEY_HEX}")
+    return POOL_PRIVATE_KEY, POOL_PUBLIC_KEY_HEX
+
 async def generate_worker_key():
+    global POOL_PRIVATE_KEY, POOL_PUBLIC_KEY_HEX
     get_sufix_for_pub_key()
     logger.info("[KEYGEN] Buscando clave pública válida usando múltiples procesos...")
     with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
@@ -167,7 +181,9 @@ async def generate_worker_key():
             priv_pem, pub_pem, public_hex = future.result()
             private_key_obj = serialization.load_pem_private_key(priv_pem, password=None)
             logger.info(f"[KEYGEN] Clave encontrada: {public_hex}")
-            return private_key_obj, public_hex
+            POOL_PRIVATE_KEY = private_key_obj
+            POOL_PUBLIC_KEY_HEX = public_hex
+            break
 
 def fetch_transactions() -> List[Transaction]:
     try:
@@ -180,10 +196,12 @@ def fetch_transactions() -> List[Transaction]:
     except Exception as e:
         logger.error(f"[ERROR] No se pudo consultar el coordinador: {e}")
         return []
-    
 
 
 def prepare_task_for_workers(tx: Transaction, last_hash: str, difficulty: int):
+    """
+    Devuelve tareas, ya que sería 1 por canditdad de workers registrados
+    """
     worker_keys = [key for key in REDIS_CLIENT.keys("worker:*") if not key.endswith(":resolved_count")]
 
     workers = []
@@ -245,25 +263,26 @@ def calculate_difficulty():
         return BASE_DIFFICULTY
 
 
-def dispatch_tasks_to_workers(tasks: List[dict]):
-    for task in tasks:
-        try:
-            worker_ip = task["worker_ip"]
-            worker_port = task["worker_port"] 
-            url = f"http://{worker_ip}:{worker_port}/mine-task"
-            response = requests.post(url, json=task)
-            logger.info(f"Tarea {task} por enviar a {worker_ip}")
-            if response.status_code == 200:
-                logger.info(f"[POOL] Tarea enviada exitosamente al worker {worker_ip}:{worker_port}")
-            else:
-                logger.warning(f"[POOL] Worker {worker_ip}:{worker_port} respondió con código {response.status_code}")
-
-        except Exception as e:
-            logger.error(f"Error enviando tarea al worker {worker_ip}: {e}")
+async def dispatch_task_to_worker(task: dict):
+    try:
+        worker_ip = task["worker_ip"]
+        worker_port = task["worker_port"]
+        url = f"http://{worker_ip}:{worker_port}/mine-task"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=task) as resp: # request bloquea el hilo bebe
+                text = await resp.text()
+                logger.info(f"Tarea enviada a {worker_ip} con status {resp.status}: {text}")
+    except Exception as e:
+        logger.error(f"Error enviando tarea al worker {worker_ip}: {e}")
 
 
 def push_tx_to_queue(tx: Transaction):
     REDIS_CLIENT.rpush("tx_queue", tx.json())
+    tx_key = f"tx:{tx.tx_id}"
+    REDIS_CLIENT.hset(tx_key, mapping={
+        "status": "pendiente",
+        "transaction": tx.json()
+    })
 
 
 def pop_tx_from_queue():
@@ -277,51 +296,84 @@ def queue_length():
     return REDIS_CLIENT.llen("tx_queue")
 
 
-def assign_next_tx_to_workers():
+async def assign_next_tx_to_workers():
     if queue_length() == 0:
         logger.info("[POOL] No hay transacciones en la cola Redis.")
         return
 
     tx = pop_tx_from_queue()
     difficulty = calculate_difficulty()
-    logger.info(f"TENEMOS EL LAST  HASH IGUAL A {State.last_hash}")
+    logger.info(f"[POOL] Asignando nueva tarea para tx_id={tx.tx_id}")
+
     tasks = prepare_task_for_workers(tx, State.last_hash, difficulty)
-    dispatch_tasks_to_workers(tasks)
 
-    logger.info(f"[POOL] Tarea enviada para tx_id={tx.tx_id}")
+    # Enviamos la tarea a todos los workers (de a una)
+    await asyncio.gather(*[dispatch_task_to_worker(task) for task in tasks])
+
+    logger.info(f"[POOL] Tarea enviada a TODOS los workers para tx_id={tx.tx_id}")
 
 
-def publish_results_to_coordinator():
-    logger.info("[POOL] Publicando resultados al Coordinador...")
-    transactions = []
-    tx_keys = REDIS_CLIENT.keys("tx:*")
 
-    for tx_key in tx_keys:
-        tx_data = REDIS_CLIENT.hgetall(tx_key)
-        
-        transaction_json = tx_data.get("transaction", None)
-        resolved_by = tx_data.get("resolved_by", None)
-
-        if transaction_json:
-            tx = Transaction.parse_raw(transaction_json)
-            tx_dict = tx.dict()
-            tx_dict['worker_ip'] = resolved_by
-            transactions.append(tx_dict)
-
-    if transactions:
+async def publish_results(transactions: list[Transaction]):
+    payload = {"transactions": [tx.dict() for tx in transactions]}
+    async with aiohttp.ClientSession() as session:
         try:
-            response = requests.post(f"{COORDINATOR_URL}/publish-results", json={"transactions": transactions})
-            
-            if response.status_code == 200:
-                logger.info(f"[POOL] Resultados publicados exitosamente: {response.text}")
-                # Limpiar Redis solo si la publicación fue exitosa
-                for tx_key in tx_keys:
-                    REDIS_CLIENT.delete(tx_key)
-                logger.info("[POOL] Transacciones eliminadas de Redis tras publicación exitosa.")
-            else:
-                logger.warning(f"[POOL] Falló publicación en Coordinador con código {response.status_code}: {response.text}")
-
+            async with session.post(PUBLISH_URL, json=payload) as resp:
+                data = await resp.json()
+                logger.info(f"[PUBLISH] {data}")
         except Exception as e:
-            logger.error(f"[POOL] Error publicando resultados: {e}")
-    else:
-        logger.info("[POOL] No hay transacciones para publicar.")
+            logger.error(f"[ERROR] No se pudo publicar resultados: {e}")
+
+
+async def generate_reward_tasks_for_workers(reward: float = 0.0):
+    global POOL_PRIVATE_KEY, POOL_PUBLIC_KEY_HEX
+    # Obtenemos workers registrados
+    worker_keys = [key for key in REDIS_CLIENT.keys("worker:*") if not key.endswith(":resolved_count")]
+
+    if not worker_keys:
+        logger.warning("[POOL] No hay workers registrados para distribuir la recompensa.")
+        return
+
+    workers = []
+    
+    for key in worker_keys:
+        ip = key.replace("worker:", "")
+        worker_info = REDIS_CLIENT.hgetall(key)
+
+        workers.append({
+            "ip": ip,
+            "port": worker_info.get("port", "8000"),
+            "type": worker_info.get("type", "CPU"),
+            "pub_key": worker_info.get("pub_key", "")
+        })
+
+    logger.info(f"[POOL] Generando tareas de recompensa para {len(workers)} workers.")
+    description = "reward mining"
+    avg_amount_workers = reward // len(workers) +1
+    # Preparamos tareas simples para notificar recompensa
+    for worker in workers:
+        logger.info(f"[POOL] Enviando la tarea a {worker}.")
+        timestamp = datetime.now(timezone.utc).isoformat()
+
+        message = f"{POOL_PUBLIC_KEY_HEX}{worker['pub_key']}{avg_amount_workers}{description}{timestamp}".encode()
+        signature = POOL_PRIVATE_KEY.sign(message)
+        signature_b64 = base64.b64encode(signature).decode()
+        payload = {
+            "source": POOL_PUBLIC_KEY_HEX,
+            "target": worker["pub_key"],
+            "amount": avg_amount_workers,
+            "description": description,
+            "timestamp": timestamp,
+            "sign": signature_b64
+        }
+        logger.info(f"[POOL] Enviando la tarea {payload}.")
+        # 6. Enviamos al coordinador
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.post(NEW_TASKS, json=payload) as resp:
+                    data = await resp.json()
+                    logger.info(f"[POOL] Se creo la nueva tarea {data} y se envió para minar.")
+            except Exception as e:
+                logger.error(f"[ERROR] No se pudo publicar resultados: {e}")
+        
+    

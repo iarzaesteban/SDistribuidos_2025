@@ -326,17 +326,15 @@ def get_heartbeats():
         raise HTTPException(status_code=500, detail=f"Error al leer heartbeats: {e}")
 
 
-
-
-# @router.get("/lb")
-# async def get_last_block():
-#     try:
-#         last_hash = REDIS_CLIENT.get("last_block")
-#         if last_hash:
-#             last_block = json.loads(REDIS_CLIENT.get(f"block:{last_hash}"))
-#             logger.info("Último bloque:", last_block)
-#         return {"Último bloque es ": last_block}
-#     except Exception as e:
-#         logger.error(f"Error al obtener el último bloque: {e}")
-#         raise HTTPException(status_code=500, detail="Error interno")
+@router.get("/get-last-chained-block")
+async def get_last_chained_block():
+    try:
+        last_hash = REDIS_CLIENT.get("last_block")
+        if last_hash:
+            last_block = json.loads(REDIS_CLIENT.get(f"block:{last_hash}"))
+            logger.info("Último bloque:", last_block)
+        return {"last-chained-block": last_block}
+    except Exception as e:
+        logger.error(f"Error al obtener el último bloque: {e}")
+        raise HTTPException(status_code=500, detail="Error interno")
     

@@ -24,6 +24,8 @@ WORKER_PRIVATE_KEY = None
 WORKER_PUBLIC_KEY_HEX = None
 
 mining_task = None
+CURRENT_TX_ID = None 
+STOP_MINING = None
 
 TOTAL_REWARD = 0.0  # Sumamos los premios del worker
 WORKER_IP = get_container_ip() # Obtnemos la ip del container
@@ -31,12 +33,12 @@ REGISTER_URL = f"{COORDINATOR_URL}/register-worker"
 PUBLISH_URL = f"{COORDINATOR_URL}/publish-results"
 MINING_DURATION = 60 # Duracion del procesamiento de mineria, luego publicar (1 min)
 WAIT_DURATION = 30
+GENESIS_BLOCK_URL = f"{COORDINATOR_URL}/genesis-block"
 
 # URL según modo
 if WORKER_MODE == "COORDINADOR":
     REGISTER_URL = f"{COORDINATOR_URL}/register-worker"
     PUBLISH_URL = f"{COORDINATOR_URL}/publish-results"
-    GENESIS_BLOCK_URL = f"{COORDINATOR_URL}/genesis-block"
 elif WORKER_MODE == "POOL":
     REGISTER_URL = f"{POOL_URL}/register-worker"
     PUBLISH_URL = None 
@@ -79,14 +81,16 @@ async def fetch_genesis_block():
 
 
 async def register():
-    global WORKER_PUBLIC_KEY_HEX
+    global WORKER_PUBLIC_KEY_HEX, GENESIS_BLOCK
     payload = {"ip": WORKER_IP, "type": WORKER_TYPE, "port": 8000, "pub_key": WORKER_PUBLIC_KEY_HEX}
     async with aiohttp.ClientSession() as session:
         try:
             async with session.post(REGISTER_URL, json=payload) as resp:
                 data = await resp.json()
                 logger.info(f"[REGISTER] {data}")
+
                 await fetch_genesis_block()
+                    
         except Exception as e:
             logger.error(f"[ERROR] No se pudo registrar el worker: {e}")
 
@@ -188,9 +192,18 @@ async def mining_cycle():
         await asyncio.sleep(0.5)
 
 
-def proof_of_work(tx: Transaction, nonce_start, nonce_end, difficulty):
+def proof_of_work(tx: Transaction, nonce_start, nonce_end, difficulty, config):
     prefix = '0' * difficulty
     for nonce in range(nonce_start, nonce_end + 1):
+        if STOP_MINING or tx.tx_id != CURRENT_TX_ID:
+            logger.info(f"[WORKER] Minado cancelado para tx_id={tx.tx_id}")
+            return None, None
+        # Verificar si cambió la ventana a 'publishing'
+        current_window = get_current_window(config)
+        if current_window == 'publishing':
+            logger.info(f"[WORKER] Detectada ventana PUBLISHING durante minado. Abortando minería para tx_id={tx.tx_id}.")
+            return None, None
+
         tx.nonce = nonce
         new_hash = tx.compute_hash()
         if new_hash.startswith(prefix):
@@ -201,9 +214,9 @@ def proof_of_work(tx: Transaction, nonce_start, nonce_end, difficulty):
 
 @app.post("/mine-task")
 async def mine_task(request: Request):
-    global WORKER_PUBLIC_KEY_HEX
+    global CURRENT_TX_ID, STOP_MINING, WORKER_PUBLIC_KEY_HEX
     data = await request.json()
-    logger.info(f"DATA ES  {data}")
+    logger.info(f"DATA recibida --- {data} ---")
     
     tx_id = data["tx_id"]
     hash_previo = data["hash_previo"]
@@ -211,13 +224,22 @@ async def mine_task(request: Request):
     nonce_end = data["nonce_end"]
     difficulty = data["difficulty"]
     tx = Transaction(**data['transaction'])
-    tx.worker_ip = WORKER_IP
-    tx.worker_pub_key = WORKER_PUBLIC_KEY_HEX
-    tx.hash_previo = hash_previo
 
+    if tx_id != CURRENT_TX_ID:
+        logger.info(f"[WORKER] Nueva tarea recibida: {tx_id}. Cancelando la anterior: {CURRENT_TX_ID}")
+        STOP_MINING = True
+        await asyncio.sleep(0.1)
+        STOP_MINING = False
+        CURRENT_TX_ID = tx_id
+
+
+    tx.worker_ip = WORKER_IP
+    tx.pub_key = WORKER_PUBLIC_KEY_HEX
+    tx.hash_previo = hash_previo
+    config = GENESIS_BLOCK['config']
     logger.info(f"[WORKER] Minando tx_id={tx_id} desde nonce {nonce_start} hasta {nonce_end} con dificultad {difficulty}...")
 
-    nonce, valid_hash = proof_of_work(tx, nonce_start, nonce_end, difficulty)
+    nonce, valid_hash = proof_of_work(tx, nonce_start, nonce_end, difficulty, config)
     
     if valid_hash:
         logger.info(f"[WORKER] Transacción {tx_id} resuelta con nonce {nonce}, hash {valid_hash}")
@@ -229,7 +251,8 @@ async def mine_task(request: Request):
             }
             try:
                 async with session.post(f"{POOL_URL}/mine-result", json=payload) as resp:
-                    logger.info(f"[WORKER] Resultado enviado al Pool: {await resp.text()}")
+                    text = await resp.text()
+                    logger.info(f"[WORKER] Resultado enviado al Pool: {resp.status} {text}")
             except Exception as e:
                 logger.error(f"[WORKER] Error enviando resultado al Pool: {e}")
     else:

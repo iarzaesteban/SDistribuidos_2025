@@ -78,20 +78,20 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
 
-  # pool:
-  #   build:
-  #     context: ./pool
-  #     dockerfile: deploy/Dockerfile
-  #   restart: unless-stopped
-  #   ports:
-  #     - "9998:9998"
-  #   depends_on:
-  #     nct:
-  #       condition: service_healthy
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - /etc/localtime:/etc/localtime:ro
+  pool:
+    build:
+      context: ./pool
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "9998:9998"
+    depends_on:
+      nct:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
 
   # worker-mock:
   #   build:

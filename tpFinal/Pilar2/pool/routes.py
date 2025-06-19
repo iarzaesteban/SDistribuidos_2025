@@ -5,7 +5,8 @@ from utils.helper import (assign_next_tx_to_workers,
                           WorkerRegistration,
                           Transaction,
                           validar_hash,
-                          REDIS_CLIENT)
+                          REDIS_CLIENT,
+                          get_keys)
 router = APIRouter()
 
 @router.get("/")
@@ -60,35 +61,37 @@ def list_registered_workers():
 
 @router.post("/mine-result")
 async def mine_result(request: Request):
-    if not State.accepting_results:
-        logger.info("[POOL] Ventana cerrada: Resultado rechazado.")
-        return {"status": "rejected", "reason": "window_closed"}
-
+    WORKER_PRIVATE_KEY, WORKER_PUBLIC_KEY_HEX = get_keys()
+    logger.info(f" WORKER_PUBLIC_KEY_HEX ------ --> {WORKER_PUBLIC_KEY_HEX}")
     data = await request.json()
     tx = Transaction(**data['transaction'])
     worker_ip = data["worker_ip"]
-    logger.info("***************************************")
     valid = validar_hash(tx)
     logger.info(f" data em mine result vbebe  es --> {data}")
     logger.info(f" valid es --> {valid}")
-    logger.info("***************************************")
-    if valid:
-        tx_key = f"tx:{tx.tx_id}"
+    tx_key = f"tx:{tx.tx_id}"
 
+    # Validamos si la transacción sigue existiendo en Redis (no fue publicada)
+    if not REDIS_CLIENT.exists(tx_key):
+        logger.warning(f"[POOL] Resultado tardío recibido para transacción {tx.tx_id} que ya fue publicada o descartada.")
+        return {"status": "rejected", "reason": "tx_not_found_or_already_published", "tx_id": tx.tx_id}
+    
+    if valid:
         if REDIS_CLIENT.hget(tx_key, "status") == "resuelta":
             logger.info(f"[POOL] Transacción {tx.tx_id} ya resuelta.")
             return {"status": "ignored", "reason": "already_resolved"}
 
+        tx.pub_key = WORKER_PUBLIC_KEY_HEX
         REDIS_CLIENT.hset(tx_key, mapping={
             "status": "resuelta",
-            "resolved_by": worker_ip,
+            "resolved_by": WORKER_PUBLIC_KEY_HEX, # ojo poner la pub_key del pool
             "transaction": tx.json()
         })
 
         logger.info(f"[POOL] Transacción {tx.tx_id} resuelta por {worker_ip} con nonce {tx.nonce}.")
         State.last_hash = tx.hash
 
-        assign_next_tx_to_workers()
+        await assign_next_tx_to_workers()
 
         return {"status": "accepted", "tx_id": tx.tx_id}
 
