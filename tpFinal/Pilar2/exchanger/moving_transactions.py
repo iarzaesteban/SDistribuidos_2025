@@ -55,7 +55,7 @@ def seconds_until_post_monitoring(genesis_config):
     now = int(time.time())
     seconds_in_period = now % period
 
-    target = monitoring_end + 1  # ejemplo: 15 + 1 = 16
+    target = monitoring_end + 1
 
     if seconds_in_period < target:
         wait_seconds = target - seconds_in_period

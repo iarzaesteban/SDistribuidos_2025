@@ -6,21 +6,24 @@ import time
 import uvicorn
 from fastapi import FastAPI, Request
 from utils.logger import logger
-from utils.helper import (
-    get_container_ip,
-    fetch_transactions,
-    Transaction,
-    COORDINATOR_URL,
-    RESOLUTION_INTERVAL,
-    MOCK_TASK_WORKER,
-    WORKER_MODE,
-    WORKER_TYPE,
-    POOL_URL)
+from utils.helper import (generate_worker_key,
+                          get_container_ip,
+                          fetch_transactions,
+                          Transaction,
+                          COORDINATOR_URL,
+                          RESOLUTION_INTERVAL,
+                          MOCK_TASK_WORKER,
+                          WORKER_MODE,
+                          WORKER_TYPE,
+                          POOL_URL)
 
 app = FastAPI()
 
 GENESIS_BLOCK = None
+WORKER_PRIVATE_KEY = None
+WORKER_PUBLIC_KEY_HEX = None
 
+mining_task = None
 
 TOTAL_REWARD = 0.0  # Sumamos los premios del worker
 WORKER_IP = get_container_ip() # Obtnemos la ip del container
@@ -76,7 +79,8 @@ async def fetch_genesis_block():
 
 
 async def register():
-    payload = {"ip": WORKER_IP, "type": WORKER_TYPE, "port": 8000}
+    global WORKER_PUBLIC_KEY_HEX
+    payload = {"ip": WORKER_IP, "type": WORKER_TYPE, "port": 8000, "pub_key": WORKER_PUBLIC_KEY_HEX}
     async with aiohttp.ClientSession() as session:
         try:
             async with session.post(REGISTER_URL, json=payload) as resp:
@@ -88,20 +92,22 @@ async def register():
 
 
 async def mine_transactions(transactions: list[Transaction], starting_previous_hash: str) -> list[Transaction]:
-    logger.info(f"[MINING] Iniciando minería de {len(transactions)} transacciones por {MINING_DURATION} segundos...")
-    start_time = time.time()
+    logger.info(f"[MINING] Iniciando minería de {len(transactions)} transacciones...")
+    global WORKER_PUBLIC_KEY_HEX
     mined = []
     previous_hash = starting_previous_hash
 
     for tx in transactions:
-        if time.time() - start_time > MINING_DURATION:
-            logger.warning(f"[MINING] Tiempo agotado.")
+        try:
+            tx.worker_ip = WORKER_IP
+            tx.pub_key = WORKER_PUBLIC_KEY_HEX
+            tx.hash_previo = previous_hash
+            await tx.mine(prefix=tx.challenge, mock_result=MOCK_TASK_WORKER)
+            previous_hash = tx.hash
+            mined.append(tx)
+        except asyncio.CancelledError:
+            logger.warning("[MINING] Minería cancelada!")
             break
-        tx.worker_ip = WORKER_IP
-        tx.hash_previo = previous_hash
-        tx.mine(prefix=tx.challenge, mock_result=MOCK_TASK_WORKER)
-        previous_hash = tx.hash
-        mined.append(tx)
     return mined
 
 
@@ -133,43 +139,51 @@ def get_current_window(genesis_config):
     else:
         return 'waiting'
 
-        
 async def mining_cycle():
     global GENESIS_BLOCK
+    global mining_task
     config = GENESIS_BLOCK['config']
 
     fetched_previous_hash = None
     transactions = []
-    already_fetched = False
-    already_published = False
     last_window = None
 
     while True:
         current_window = get_current_window(config)
-
         if current_window != last_window:
-            already_fetched = False
-            already_published = False
+            logger.info(f"[WORKER] Cambio de ventana detectado: {last_window} -> {current_window}")
+
+            if current_window == 'monitoring':
+                logger.info("[WORKER] Ventana MONITORING activa: obteniendo transacciones.")
+                fetched_previous_hash, transactions = fetch_transactions()
+                if not transactions:
+                    logger.warning("[WORKER] No se encontraron transacciones.")
+                else:
+                    logger.info(f"[WORKER] {len(transactions)} transacciones obtenidas.")
+
+                # Iniciar minado solo si hay transacciones
+                if transactions:
+                    logger.info("[WORKER] Iniciando minería en background.")
+                    mining_task = asyncio.create_task(mine_transactions(transactions, fetched_previous_hash))
+
+            elif current_window == 'publishing':
+                logger.info("[WORKER] Ventana PUBLISHING activa: publicando resultados.")
+                if fetched_previous_hash is None:
+                    logger.error("[WORKER] No hay previous_hash para minar.")
+                elif transactions:
+                    if mining_task and not mining_task.done():
+                        logger.info("[WORKER] Cancelando minería para publicar.")
+                        mining_task.cancel()
+                        try:
+                            await mining_task
+                        except asyncio.CancelledError:
+                            logger.info("[WORKER] Minería cancelada para publicar.")
+
+                    # Publicar lo minado hasta ahora:
+                    await publish_results(transactions)
+                    transactions = []
+
             last_window = current_window
-
-        if current_window == 'monitoring' and not already_fetched:
-            logger.info(f"[WORKER-{WORKER_IP}] Ventana MONITOREO activa: solicitando transacciones.")
-            fetched_previous_hash, transactions = fetch_transactions()
-            if not transactions:
-                logger.warning(f"[WORKER-{WORKER_IP}] No se encontraron transacciones.")
-            else:
-                logger.info(f"[WORKER-{WORKER_IP}] {len(transactions)} transacciones obtenidas.")
-            already_fetched = True
-
-        elif current_window == 'publishing' and transactions and not already_published:
-            logger.info(f"[WORKER-{WORKER_IP}] Ventana PUBLICACIÓN activa: publicando resultados.")
-            if fetched_previous_hash is None:
-                logger.error(f"[WORKER-{WORKER_IP}] No hay previous_hash para minar.")
-            else:
-                mined_transactions = await mine_transactions(transactions, fetched_previous_hash)
-                await publish_results(mined_transactions)
-                transactions = []
-            already_published = True
 
         await asyncio.sleep(0.5)
 
@@ -187,6 +201,7 @@ def proof_of_work(tx: Transaction, nonce_start, nonce_end, difficulty):
 
 @app.post("/mine-task")
 async def mine_task(request: Request):
+    global WORKER_PUBLIC_KEY_HEX
     data = await request.json()
     logger.info(f"DATA ES  {data}")
     
@@ -197,6 +212,7 @@ async def mine_task(request: Request):
     difficulty = data["difficulty"]
     tx = Transaction(**data['transaction'])
     tx.worker_ip = WORKER_IP
+    tx.worker_pub_key = WORKER_PUBLIC_KEY_HEX
     tx.hash_previo = hash_previo
 
     logger.info(f"[WORKER] Minando tx_id={tx_id} desde nonce {nonce_start} hasta {nonce_end} con dificultad {difficulty}...")
@@ -244,6 +260,9 @@ async def health():
 
 @app.on_event("startup")
 async def startup_event():
+    global WORKER_PRIVATE_KEY, WORKER_PUBLIC_KEY_HEX
+    WORKER_PRIVATE_KEY, WORKER_PUBLIC_KEY_HEX = await generate_worker_key()
+    logger.info(f"[STARTUP] WORKER_PUBLIC_KEY_HEX: {WORKER_PUBLIC_KEY_HEX}")
     health_url = ""
 
     if WORKER_MODE == "COORDINADOR":

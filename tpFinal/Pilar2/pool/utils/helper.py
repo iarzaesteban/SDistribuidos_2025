@@ -1,10 +1,17 @@
 import os
 import redis
 import json
+import socket
+import aiohttp
+import time
 import requests
 import hashlib
 from pydantic import BaseModel
 from typing import List, Optional
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from cryptography.hazmat.primitives.asymmetric import ed25519
+from cryptography.hazmat.primitives import serialization
+
 from utils.logger import logger
 from utils.state import State
 
@@ -20,6 +27,19 @@ COORDINATOR_URL = os.getenv("COORDINATOR_URL", "http://nct:8989")
 TOTAL_NONCE_RANGE = int(os.getenv("TOTAL_NONCE_RANGE", 4_000_000))
 BASE_DIFFICULTY = int(os.getenv("BASE_DIFFICULTY", 4))
 
+MAX_WORKERS = os.cpu_count()
+TARGET_SUFFIX = None
+GENESIS_BLOCK_URL = f"{COORDINATOR_URL}/genesis-block"
+
+def get_container_ip():
+    return socket.gethostbyname(socket.gethostname())
+
+def get_sufix_for_pub_key():
+    global TARGET_SUFFIX
+    ip_split = get_container_ip().split(".")
+    TARGET_SUFFIX = ip_split[1] + ip_split[2] + ip_split[3]
+    logger.info(f"[KEYGEN] Sufijo buscado para clave pública: {TARGET_SUFFIX}")
+    
 REDIS_CLIENT = redis.Redis(
         host=REDIS_HOST,
         port=REDIS_PORT,
@@ -30,6 +50,7 @@ class WorkerRegistration(BaseModel):
     ip: str
     type: str
     port: int
+    pub_key:str
 
 
 class Transaction(BaseModel):
@@ -75,6 +96,78 @@ def get_last_block_hash():
     return last_block.get("block_hash")
 
 
+async def fetch_genesis_block():
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(GENESIS_BLOCK_URL) as resp:
+                if resp.status == 200:
+                    genesis_block = await resp.json()
+                    logger.info(f"[GENESIS] Bloque génesis recibido: {json.dumps(genesis_block, indent=2)}")
+                    return genesis_block
+                else:
+                    logger.error(f"[GENESIS] Fallo al obtener bloque génesis. Status: {resp.status}")
+        except Exception as e:
+            logger.error(f"[GENESIS] Error al obtener bloque génesis: {e}")
+
+
+def get_current_window(genesis_config):
+    period = genesis_config['window_period_seconds']
+    monitoring_start = genesis_config['monitoring_window_start']
+    monitoring_end = genesis_config['monitoring_window_end']
+    publish_start = genesis_config['publish_window_start']
+    publish_end = genesis_config['publish_window_end']
+
+    now = int(time.time())
+    seconds_in_period = now % period
+
+    if monitoring_start <= seconds_in_period <= monitoring_end:
+        return 'monitoring'
+    elif publish_start <= seconds_in_period <= publish_end:
+        return 'publishing'
+    else:
+        return 'waiting'
+
+
+def generate_key_pair():
+    private_key = ed25519.Ed25519PrivateKey.generate()
+    public_key = private_key.public_key()
+
+    public_bytes = public_key.public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw
+    )
+    public_hex = public_bytes.hex()
+
+    if public_hex.startswith(TARGET_SUFFIX):
+        priv_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        pub_pem = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        return priv_pem, pub_pem, public_hex
+
+    return None
+
+def worker(_):
+    while True:
+        res = generate_key_pair()
+        if res:
+            return res
+        
+async def generate_worker_key():
+    get_sufix_for_pub_key()
+    logger.info("[KEYGEN] Buscando clave pública válida usando múltiples procesos...")
+    with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = [executor.submit(worker, i) for i in range(MAX_WORKERS)]
+        for future in as_completed(futures):
+            priv_pem, pub_pem, public_hex = future.result()
+            private_key_obj = serialization.load_pem_private_key(priv_pem, password=None)
+            logger.info(f"[KEYGEN] Clave encontrada: {public_hex}")
+            return private_key_obj, public_hex
 
 def fetch_transactions() -> List[Transaction]:
     try:

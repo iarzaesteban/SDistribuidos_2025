@@ -53,6 +53,7 @@ class WorkerRegistration(BaseModel):
     ip: str
     type: str
     port: int
+    pub_key: str
     
 def get_last_block_hash():
     # Obtengo todas las keys de bloques
@@ -85,10 +86,10 @@ def generate_genesis_block():
         },
         "config": {
             "max_tries_per_tx": 6,
-            "monitoring_window_start": 5,
-            "monitoring_window_end": 15,
+            "monitoring_window_start": 6,
+            "monitoring_window_end": 10,
             "publish_window_start": 50,
-            "publish_window_end": 59,
+            "publish_window_end": 54,
             "window_period_seconds": 60
         }
     }
@@ -117,6 +118,7 @@ class Transaction(BaseModel):
     tx_id: Optional[str] = None
     status: Optional[TransactionStatus] = None
     worker_ip: Optional[str] = None
+    pub_key: Optional[str] = None
     hash_previo: Optional[str] = None
     nonce: Optional[int] = 0
     tries: Optional[int] = 0

@@ -55,6 +55,7 @@ class Transaction(BaseModel):
     tx_id: Optional[str] = None
     status: Optional[TransactionStatus] = None
     worker_ip: Optional[str] = None
+    pub_key: Optional[str] = None
     hash_previo: Optional[str] = None
     nonce: Optional[int] = 0
     tries: Optional[int] = 0
@@ -151,15 +152,20 @@ def connect_with_retry(retries=10, delay=5):
     raise Exception("Failed to connect to RabbitMQ after several retries")
 
 
-def seconds_until_next_period(genesis_config):
+def seconds_until_publish_window(genesis_config):
     """
-    Calcula cuántos segundos faltan hasta el próximo inicio de período (ejemplo: XX:00, XX:01, etc.).
+    Calcula cuántos segundos faltan hasta el inicio de la ventana de publicación,
+    por ejemplo, si publish_window_end es 54, espera hasta el segundo 54 de cada minuto.
     """
-    period = genesis_config['window_period_seconds']
-    now = int(time.time())
-    seconds_in_period = now % period
+    publish_start = genesis_config['publish_window_end'] + 1
+    now = time.localtime()
+    current_second = now.tm_sec
 
-    wait_seconds = period - seconds_in_period
+    if current_second < publish_start:
+        wait_seconds = publish_start - current_second
+    else:
+        wait_seconds = 60 - current_second + publish_start
+
     return wait_seconds
 
 
@@ -198,7 +204,7 @@ def select_best_worker(txs_by_worker: Dict[str, List[Transaction]]) -> Optional[
     best_count = 0
     best_first_timestamp = None
 
-    for worker_ip, txs in txs_by_worker.items():
+    for pub_key, txs in txs_by_worker.items():
         # Filtrar solo transacciones procesadas (las que tienen un hash válido)
         processed_txs = [tx for tx in txs if tx.hash is not None]
 
@@ -215,7 +221,7 @@ def select_best_worker(txs_by_worker: Dict[str, List[Transaction]]) -> Optional[
             count > best_count or
             (count == best_count and first_ts < best_first_timestamp)
         ):
-            best_worker = worker_ip
+            best_worker = pub_key
             best_count = count
             best_first_timestamp = first_ts
 
@@ -233,7 +239,7 @@ async def reward_worker(winner: str, amount: float):
         logger.error(f"[ERROR] No se pudo enviar la recompensa al worker ganador: {e}")
 
 
-def create_reward_block(winner_ip, reward_amount):
+def create_reward_block(winner_pub_key, reward_amount):
     last_block_hash = REDIS_CLIENT.get("last_block")
     last_block_data = REDIS_CLIENT.get(f"block:{last_block_hash}")
 
@@ -250,7 +256,7 @@ def create_reward_block(winner_ip, reward_amount):
     reward_tx = {
         "tx_id": new_tx_id,
         "source": "0000000000",  # COORDINADOR (sistema)
-        "target": winner_ip,     # worker ip ganador o k_pub del mismo
+        "target": winner_pub_key,     # worker ip ganador o k_pub del mismo
         "amount": reward_amount,
         "description": "Recompensa minería",
         "timestamp": datetime.utcnow().isoformat(),

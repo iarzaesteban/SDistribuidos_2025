@@ -165,7 +165,8 @@ async def register_worker(worker: WorkerRegistration):
         redis_key = f"worker_registered:{worker.ip}"
         worker_data = {
             "type": worker.type, 
-            "port": str(worker.port)}
+            "port": str(worker.port),
+            "pub_key": worker.pub_key}
         REDIS_CLIENT.hmset(redis_key, worker_data)
         logger.info(f"Worker registrado: {worker.ip}")
         return {"status": "ok", "worker_ip": worker.ip, "port": worker.port}

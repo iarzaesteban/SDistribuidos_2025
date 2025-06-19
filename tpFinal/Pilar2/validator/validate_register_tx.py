@@ -10,7 +10,7 @@ from utils.rabbitmq_connection import RabbitMQClient
 from utils.helper import (wait_for_genesis_block,
                           select_best_worker,
                           reward_worker,
-                          seconds_until_next_period,
+                          seconds_until_publish_window,
                           create_reward_block,
                           TransactionStatus,
                           Transaction,
@@ -77,7 +77,7 @@ async def handle_transaction(tx: Transaction, is_winner: bool):
             "block_id": block_id,
             "previous_hash": tx.hash_previo,
             "nonce": tx.nonce,
-            "miner": tx.worker_ip, # o poner el la pub del source
+            "miner": tx.pub_key, # o poner el la pub del source o la ip del worker
             "prefix": tx.challenge,
             "transaction": tx.to_dict()
         }
@@ -95,32 +95,32 @@ async def handle_transaction(tx: Transaction, is_winner: bool):
 
 
 async def process_transactions_and_reward(txs_by_worker: Dict[str, List[Transaction]]):
-    winner = select_best_worker(txs_by_worker)
-    logger.info(f"Worker ganador: {winner if winner else 'Ninguno'}")
+    winner_pub_key = select_best_worker(txs_by_worker)
+    logger.info(f"Worker ganador: {winner_pub_key if winner_pub_key else 'Ninguno'}")
 
-    for worker_ip, txs in txs_by_worker.items():
-        is_winner = (worker_ip == winner)
+    for worker_pub_key, txs in txs_by_worker.items():
+        is_winner = (worker_pub_key == winner_pub_key)
         for tx in txs:
             await handle_transaction(tx, is_winner)
 
-    if winner:
+    if winner_pub_key:
         reward_amount = round(MAX_COINS * 0.001, 4)
-        reward_block = create_reward_block(winner, reward_amount)
-        await reward_worker(winner, round(MAX_COINS * 0.001, 4))
+        reward_block = create_reward_block(winner_pub_key, reward_amount)
+        await reward_worker(winner_pub_key, round(MAX_COINS * 0.001, 4))
         
         if reward_block:
             REDIS_CLIENT.set(f"block:{reward_block['block_hash']}", json.dumps(reward_block))
             REDIS_CLIENT.set("last_block", reward_block['block_hash'])
-            REDIS_CLIENT.incr("block_id_counter")  # opcional si usas contador también
+            REDIS_CLIENT.incr("block_id_counter")
 
-            logger.info(f"[REWARD] Bloque de recompensa agregado para {winner} con {reward_amount} coins.")
+            logger.info(f"[REWARD] Bloque de recompensa agregado para {winner_pub_key} con {reward_amount} coins.")
 
 
 async def monitor_pending_transactions(genesis_config):
     while not shutdown_event.is_set():
         try:
-            wait_time = seconds_until_next_period(genesis_config)
-            logger.info(f"Esperando {wait_time} segundos hasta el próximo inicio de período...")
+            wait_time = seconds_until_publish_window(genesis_config)
+            logger.info(f"Esperando {wait_time} segundos hasta el inicio de la ventana de publicación...")
             await asyncio.sleep(wait_time)
 
             logger.info("Inicio de período alcanzado. Validando transacciones...")
@@ -137,7 +137,7 @@ async def monitor_pending_transactions(genesis_config):
                 try:
                     tx_data = json.loads(raw)
                     tx = Transaction(**tx_data)
-                    txs_by_worker.setdefault(tx.worker_ip, []).append(tx)
+                    txs_by_worker.setdefault(tx.pub_key, []).append(tx)
                 except Exception as ex:
                     logger.warning(f"Transacción mal formada: {ex}")
 
