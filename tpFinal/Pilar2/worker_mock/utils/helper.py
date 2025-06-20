@@ -73,19 +73,15 @@ class Transaction(BaseModel):
 
     async def mine(self, prefix: str = None, mock_result: bool = False):
         self.nonce = 0
-        if mock_result:
-            self.hash = None
-            self.nonce = -1
-            return self.hash
-        else:
-            while True:
-                hash_ = self.compute_hash()
-                if hash_.startswith(prefix):
-                    self.hash = hash_
-                    logger.info(f"Transacción minada: {self.hash} con nonce {self.nonce}")
-                    return self.hash
-                self.nonce += 1
-                await asyncio.sleep(0)
+
+        while True:
+            hash_ = self.compute_hash()
+            if hash_.startswith(prefix):
+                self.hash = hash_
+                logger.info(f"Transacción minada: {self.hash} con nonce {self.nonce}")
+                return self.hash
+            self.nonce += 1
+            await asyncio.sleep(0)
 
 def fetch_transactions() -> List[Transaction]:
     try:

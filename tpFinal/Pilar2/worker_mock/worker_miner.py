@@ -106,8 +106,8 @@ async def mine_transactions(transactions: list[Transaction], starting_previous_h
             tx.worker_ip = WORKER_IP
             tx.pub_key = WORKER_PUBLIC_KEY_HEX
             tx.hash_previo = previous_hash
-            await tx.mine(prefix=tx.challenge, mock_result=MOCK_TASK_WORKER)
-            previous_hash = tx.hash
+            hash = await tx.mine(prefix=tx.challenge, mock_result=MOCK_TASK_WORKER)
+            previous_hash = hash
             mined.append(tx)
         except asyncio.CancelledError:
             logger.warning("[MINING] Minería cancelada!")
