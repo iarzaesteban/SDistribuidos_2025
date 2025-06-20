@@ -203,7 +203,6 @@ def select_best_worker(txs_by_worker: Dict[str, List[Transaction]]) -> Optional[
     best_worker = None
     best_count = 0
     best_first_timestamp = None
-    logger.info(f"txs_by_worker-------------------{txs_by_worker}")
     for pub_key, txs in txs_by_worker.items():
         # Filtrar solo transacciones procesadas (las que tienen un hash válido)
         processed_txs = [tx for tx in txs if tx.hash is not None]
