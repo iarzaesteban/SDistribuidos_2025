@@ -1,0 +1,43 @@
+.statistics-container {
+    background-color: #fff;
+    border-radius: .5rem;
+    font-size: 1.2rem;
+    margin: 1rem 0;
+    padding: 2rem 10rem;
+}
+
+.statistics-container input {
+    width: 20rem;
+    margin: 0 auto;
+}
+
+.statistics-container__form {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    gap: .5rem;
+}
+
+.statistics-container__form button {
+    width: 15rem;
+    height: 3rem;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.worker-info-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.worker-info-container button{
+    width: 20rem;
+    margin: 0 auto;
+}
+
+.worker-card {
+    margin-top: .3rem;
+    border: .3rem solid #000;
+    border-radius: .5rem;
+    padding: 0 2rem;
+}

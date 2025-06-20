@@ -1,0 +1,10 @@
+.data-container{
+    border-radius: .5rem;
+    background-color: #fff;
+}
+
+.subtitle{
+    text-align: start;
+    font-weight: bold;
+    font-style: italic;
+}

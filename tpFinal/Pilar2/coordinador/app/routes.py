@@ -70,7 +70,7 @@ def new_task(tx: Transaction):
         tx_dict["status"] = TransactionStatus.pendiente.value
         publish_new_transaction(tx_dict)
         message = f"Transacción publicada correctamente. ID: {tx_id}"
-    return {"message": message}
+    return {"message": message, "tx": tx_id}
 
 
 @router.get("/get-block/{block_hash}")
@@ -198,11 +198,11 @@ def get_genesis_block():
     Devuelve el bloque génesis completo desde Redis.
     """
     try:
-        last_block_hash = REDIS_CLIENT.get("last_block")
-        if not last_block_hash:
+        genesis_block_hash = REDIS_CLIENT.get("genesis_block")
+        if not genesis_block_hash:
             raise HTTPException(status_code=404, detail="Bloque génesis no encontrado")
 
-        genesis_block = REDIS_CLIENT.get(f"block:{last_block_hash}")
+        genesis_block = REDIS_CLIENT.get(f"block:{genesis_block_hash}")
         if not genesis_block:
             raise HTTPException(status_code=404, detail="Datos del bloque génesis no encontrados")
 
@@ -210,6 +210,7 @@ def get_genesis_block():
     except Exception as e:
         logger.error(f"Error al obtener el bloque génesis: {str(e)}")
         raise HTTPException(status_code=500, detail="Error interno al obtener el bloque génesis")
+
 
 
 

@@ -1,0 +1,1 @@
+export const COORDINADOR_URL = "http://localhost:8989/nct";

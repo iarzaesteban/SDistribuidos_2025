@@ -239,8 +239,7 @@ print("Response:", response.json())
 """
 ## Coordinador 
 - La tearea es el input y la transaccion es el input
-- Tanto source como target son el mismo
-- Meter el premio encadenado a la blockchain
+
 
 """
 
@@ -261,19 +260,13 @@ ayudarlo a procesar de forma distribuida
 - Tener algun raner que borre los workers que tiene registrado en coordiandor registrados, le pegariamos a un 
 health y si no devuelve, lo borramos 
 - Lógica del ttl para los workers, lo explico nehu, recordar que fue
-- El worker tiene que mandar clave publica para su billetera cuando mina una tx minar clave publica para que 
-termine con cierto valor ejemplo la parte final de la ip(E.j 104)
+- Crear un hilo que cada x tiempo pase y borre los workers que no esten vivos
 """
 
 ### IN_PROGRESS
 
 
 """ 
-## POOL
-
--El pool dsp de cada ciclo pide las transacciones y tiene que ser un get por 'hash' para ver que tiene la ultima tx 
-y ver si el es el ganador para crear nuevas transaciones 
-
 
 
 Pool de tx, se deberia regfistrar los worker y determinar su potencia

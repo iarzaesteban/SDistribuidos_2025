@@ -55,25 +55,10 @@ def main():
             priv_pem, pub_pem, public_hex = future.result()
             private_key_obj = serialization.load_pem_private_key(priv_pem, password=None)
             
-            # Usamos RAW (32 bytes)
-            source_raw = private_key_obj.public_key().public_bytes(
-                encoding=serialization.Encoding.Raw,
-                format=serialization.PublicFormat.Raw
-            )
-            
-            source_b64 = base64.b64encode(source_raw).decode()
-
             # 2. Preparamos datos de la transacción
             timestamp = datetime.now(timezone.utc).isoformat()
             amount = 100.0
             description = "Prueba de transacción"
-            ###########################################################
-            ###########################################################
-            # Esto lo uso para hardcodear cosas y probar que un worker 
-            # no proceso una tx  
-            description = "pepe" 
-            ###########################################################
-            ###########################################################
 
             # 3. Generamos par de claves para el destino (target)
             private_key_target = ed25519.Ed25519PrivateKey.generate()

@@ -1,0 +1,23 @@
+.data-container{
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    border: .3rem solid #000;
+    font-size: 1.5rem;
+    column-gap: 0;
+    margin-top: 2rem;
+}
+.title{
+    text-align: center;
+}
+.data-container p{
+    margin: .5rem;
+}
+
+.blockchacin-container li{
+    list-style: none;
+}
+
+.transaction-container{
+    background-color: #ffffff;
+}
