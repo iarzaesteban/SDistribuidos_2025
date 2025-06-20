@@ -212,8 +212,6 @@ def get_genesis_block():
         raise HTTPException(status_code=500, detail="Error interno al obtener el bloque génesis")
 
 
-
-
 @router.post("/publish-results")
 async def publish_results(request: Request):
     if not is_publish_window():
@@ -226,7 +224,7 @@ async def publish_results(request: Request):
     
     for tx_data in transactions:
         REDIS_CLIENT.rpush("pending_transactions", json.dumps(tx_data))
-
+    logger.info(f"transactions publicadas-------------------{transactions}")
     logger.info(f"Recibidas {len(transactions)} transacciones para procesar más tarde.")
     return {"status": "ok", "message": f"{len(transactions)} transacciones recibidas"}
 

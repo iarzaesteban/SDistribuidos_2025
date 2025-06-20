@@ -119,6 +119,7 @@ async def publish_results(transactions: list[Transaction]):
     payload = {"transactions": [tx.dict() for tx in transactions]}
     async with aiohttp.ClientSession() as session:
         try:
+            logger.info(f"Body es ---> {payload}")
             async with session.post(PUBLISH_URL, json=payload) as resp:
                 data = await resp.json()
                 logger.info(f"[PUBLISH] {data}")
