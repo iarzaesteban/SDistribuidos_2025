@@ -2,18 +2,29 @@ import { useState } from 'react';
 import './Statistics.css';
 
 import { useBlockchainViewer } from './use-statistics';
+import { InProgressTxs } from './InProgressTxs/InProgressTxs';
+import { WorkerInfo } from './WorkerInfo/WorkerInfo';
+import { EarringTasks } from './EarringTasks/EarringTasks';
 
 export const Statistics = () => {
     const [txId, setTxId] = useState<string>("");
     const [showWorkers, setShowWorkers] = useState<boolean>(false);
+    const [showInProgress, setShowInProgress] = useState<boolean>(false);
+    const [showEarring, setShowEarring] = useState<boolean>(false);
 
-    const { handleSearchTransaction, transaction, status, workers, error } = useBlockchainViewer();
+    const {
+        handleSearchTransaction,
+        transaction,
+        status,
+        workers,
+        earringTxs,
+        inProgressTxs} = useBlockchainViewer();
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         if (txId) {
             handleSearchTransaction(txId);
-        }else{
+        } else {
             alert("No ingresaste ningún id válido")
         }
     };
@@ -23,8 +34,19 @@ export const Statistics = () => {
             <h1 className="title">Información util</h1>
             {transaction ? (
                 <div>
-                    <p><strong>Status:</strong> {status}</p>
-                    <pre>{JSON.stringify(transaction, null, 2)}</pre>
+                    <div key={transaction.tx_id} className="data-container">
+                        <h2>Transaccion</h2>
+                        <p><strong>Status:</strong> {status}</p>
+                        <div>
+                            <p className="subtitle">Configuracion:</p>
+                            <p><strong>Origen:</strong> {transaction.source}</p>
+                            <p><strong>Destino:</strong> {transaction.target}</p>
+                            <p><strong>Monto:</strong> {transaction.amount}</p>
+                            <p><strong>Descripción:</strong> {transaction.description}</p>
+                            <p><strong>Timestamp:</strong> {transaction.timestamp}</p>
+                            <p><strong>Firma:</strong> {transaction.sign}</p>
+                        </div>
+                    </div>
                 </div>
             ) : <form onSubmit={handleSearch} className='statistics-container__form'>
                 <h3>Ver estado de mi tarea</h3>
@@ -40,26 +62,22 @@ export const Statistics = () => {
             </form>
             }
 
-            <div className='worker-info-container'>
-                <p>Cantidad de workers registrados: <strong>{workers.length}</strong></p>
-                <button className="button ver-mas" onClick={() => setShowWorkers(!showWorkers)}>
-                    {showWorkers ? "Ocultar detalles" : "Ver más"}
-                </button>
+            <WorkerInfo
+                workers={workers}
+                setShowWorkers={setShowWorkers}
+                showWorkers={showWorkers}
+            />
 
-                {showWorkers && (
-                    <div className="workers-details">
-                        {workers.map((worker, index) => (
-                            <div key={index} className="worker-card">
-                                <p><strong>IP:</strong> {worker.ip}</p>
-                                <p><strong>Tipo:</strong> {worker.info.type}</p>
-                                <p><strong>Puerto:</strong> {worker.info.port}</p>
-                                <p><strong>PubKey:</strong> {worker.info.pub_key}</p>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-            {error && <p className="text-red-500 mt-4">{error}</p>}
+            <InProgressTxs
+                inProgressTxs={inProgressTxs}
+                showInProgress={showInProgress}
+                setShowInProgress={setShowInProgress}
+            />
+            <EarringTasks 
+                earringTxs={earringTxs} 
+                showEarring={showEarring}
+                setShowEarring={setShowEarring}
+            />
 
         </section>
     )

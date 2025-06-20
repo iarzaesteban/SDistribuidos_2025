@@ -1,46 +1,32 @@
-button {
-    color: #fff;
-    font-size: 1.5rem;
-    border-radius: .5rem;
-    padding: 1rem 2rem;
-}
-
-.blockchain-button {
-    background-color: rgb(15, 6, 120);
-    border: .3rem solid rgb(143, 107, 241);
-}
-
-.botonera-footer {
-    margin: 1rem 0 0;
-    text-align: center;
-}
-
-.task-button {
-    background-color: #0d6a12;
-    border: .3rem solid rgb(30, 229, 70);
-}
-
-.blockchain-button:hover,
-.task-button:hover {
-    animation: zoomIn 0.8s;
-}
-
-@keyframes zoomIn {
-    from {
-        transform: scale(1.2);
-        opacity: 0;
-    }
-
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-.botonera {
-    margin-top: 1rem;
+.blockchain-viewer-container {
     display: flex;
-    flex-direction: row;
-    gap: 1rem;
-    justify-content: center;
+}
+
+.sidebar {
+    width: 200px;
+    background-color: #f7f7f7;
+    border-right: 1px solid #ddd;
+    padding: 1rem;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar li {
+    margin: 1rem 0;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.sidebar li:hover {
+    background-color: #e0e0e0;
+}
+
+.main-content {
+    flex: 1;
+    padding: 1rem;
 }

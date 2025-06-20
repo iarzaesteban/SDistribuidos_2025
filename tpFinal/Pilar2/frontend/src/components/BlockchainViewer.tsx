@@ -3,6 +3,8 @@ import GenesisBlock from "../pages/GenesisBlock/GenesisBlock";
 import "./BlockchainViewer.css";
 import { useBlockchainViewer } from "./use-blockchain-viewer"
 import CreateTask from "../pages/CreateTask/CreateTask";
+import { LastBlockChained } from "./LastBlockChained/LastBlockChained";
+import { useEffect, useState } from "react";
 
 
 const BlockchainViewer = () => {
@@ -10,49 +12,62 @@ const BlockchainViewer = () => {
     const { fetchBlockchain,
         fetchGenesisBlock,
         handleCreateTask,
+        fetchLastChainedBlock,
         blockchain,
         genesisBlock,
+        lastChainedBlock,
         createTask,
         error,
     } = useBlockchainViewer();
 
+    const [activeTab, setActiveTab] = useState<string>("blockchain");
+
+    useEffect(()=>{
+        if(!createTask){
+            setActiveTab("blockchain");
+        }
+    },[createTask])
+
+    const handleTabChange = (tab: string) => {
+        setActiveTab(tab);
+
+        switch (tab) {
+            case "blockchain":
+                fetchBlockchain();
+                break;
+            case "genesis":
+                fetchGenesisBlock();
+                break;
+            case "last":
+                fetchLastChainedBlock();
+                break;
+            case "create":
+                handleCreateTask();
+                break;
+            default:
+                break;
+        }
+    };
+
     return (
-        <div className="">
-            {createTask ?
-                <CreateTask handleCreateTask={handleCreateTask} /> :
-                <>
-                    <div className='botonera'>
-                        <button
-                            onClick={fetchBlockchain}
-                            className="blockchain-button"
-                        >
-                            Obtener Blockchain
-                        </button>
+        <div className="blockchain-viewer-container">
+            <aside className="sidebar">
+                <ul>
+                    <li onClick={() => handleTabChange("blockchain")}>Blockchain</li>
+                    <li onClick={() => handleTabChange("genesis")}>Bloque GENESIS</li>
+                    <li onClick={() => handleTabChange("last")}>Último Bloque Encadenado</li>
+                    <li onClick={() => handleTabChange("create")}>Crear Tarea</li>
+                </ul>
+            </aside>
 
-                        <button
-                            onClick={fetchGenesisBlock}
-                            className="blockchain-button"
-                        >
-                            Obtener Bloque GENESIS
-                        </button>
-                    </div>
-                    <div className="botonera-footer">
-                        <button
-                            onClick={handleCreateTask}
-                            className="task-button"
-                        >
-                            Crear Tarea
-                        </button>
-                    </div>
+            <main className="main-content">
+                {error && <p className="text-red-500 mt-4">{error}</p>}
 
-
-                    {error && <p className="text-red-500 mt-4">{error}</p>}
-
-                    {blockchain && <Blockchain blocks={blockchain} />}
-                    {genesisBlock && <GenesisBlock genesisBlock={genesisBlock} />}
-                </>
-            }
-
+                {activeTab === "blockchain" && blockchain && <Blockchain blocks={blockchain} />}
+                {activeTab === "genesis" && genesisBlock && <GenesisBlock genesisBlock={genesisBlock} />}
+                {activeTab === "last" && lastChainedBlock && <LastBlockChained lastChainedBlock={lastChainedBlock} />}
+                {activeTab === "create" && <CreateTask handleCreateTask={handleCreateTask} />}
+            </main>
         </div>
     );
 };

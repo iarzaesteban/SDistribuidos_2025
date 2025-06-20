@@ -1,4 +1,5 @@
 .statistics-container {
+    border: .5rem solid #000;
     background-color: #fff;
     border-radius: .5rem;
     font-size: 1.2rem;
@@ -25,19 +26,3 @@
     padding: 0;
 }
 
-.worker-info-container {
-    display: flex;
-    flex-direction: column;
-}
-
-.worker-info-container button{
-    width: 20rem;
-    margin: 0 auto;
-}
-
-.worker-card {
-    margin-top: .3rem;
-    border: .3rem solid #000;
-    border-radius: .5rem;
-    padding: 0 2rem;
-}

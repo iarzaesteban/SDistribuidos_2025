@@ -71,3 +71,23 @@ export interface RegisteredWorkersResponse {
     status: string;
     workers: Worker[];
 }
+
+export interface LastBlockChainedType{
+    block_id: number;
+    previous_hash: string;
+    nonce: string;
+    miner: string;
+    prefix: string;
+    block_hash:string;
+    transaction: Transaction;
+}
+
+export interface InProgressTxResponse {
+    last_hash: string;
+    transactions: TransactionStatus[];
+}
+
+export interface EarringQueueResponse {
+    count: number;
+    transactions: TransactionStatus[];
+}

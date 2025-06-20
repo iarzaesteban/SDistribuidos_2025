@@ -97,6 +97,48 @@ class RabbitMQClient:
 
         self.channel.queue_delete(queue=temp_queue)
         return found_message
+    
+    def get_all_messages(self):
+        """
+        Obtiene todos los mensajes de la cola EARRING sin consumirlos permanentemente.
+        Los mensajes son reencolados luego de ser leídos.
+        """
+        self._ensure_connection()
+        temp_queue = f"{self.queue_name}_temp"
+        self.channel.queue_declare(queue=temp_queue, durable=True)
+
+        messages = []
+
+        while True:
+            method_frame, header_frame, body = self.channel.basic_get(queue=self.queue_name, auto_ack=False)
+            if method_frame is None:
+                break
+
+            tx = json.loads(body)
+            messages.append(tx)
+
+            self.channel.basic_publish(
+                exchange='',
+                routing_key=temp_queue,
+                body=body,
+                properties=header_frame
+            )
+            self.channel.basic_ack(method_frame.delivery_tag)
+
+        while True:
+            method_frame, header_frame, body = self.channel.basic_get(queue=temp_queue, auto_ack=False)
+            if method_frame is None:
+                break
+            self.channel.basic_publish(
+                exchange='',
+                routing_key=self.queue_name,
+                body=body,
+                properties=header_frame
+            )
+            self.channel.basic_ack(method_frame.delivery_tag)
+
+        self.channel.queue_delete(queue=temp_queue)
+        return messages
 
     def ack(self, delivery_tag):
         self._ensure_connection()

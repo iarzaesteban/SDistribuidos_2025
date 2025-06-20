@@ -4,11 +4,11 @@ import "./Home.css"
 import { Statistics } from '../components/Statistics/Statistics';
 
 const Home = () => (
-  <div className="container">
-    <Header />
-    <Statistics /> 
-    <BlockchainViewer />
-  </div>
+    <div className="container">
+        <Header />
+        <Statistics />
+        <BlockchainViewer />
+    </div>
 );
 
 export default Home;

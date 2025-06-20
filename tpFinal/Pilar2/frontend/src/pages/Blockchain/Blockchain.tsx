@@ -8,10 +8,10 @@ interface BlockchainProperties {
 export const Blockchain = ({ blocks }: BlockchainProperties) => (
     <div className="blockchacin-container">
         {blocks.length > 0 && <h2 className="title">Blockchain</h2>}
+        {blocks.length == 1 && <p className="title">No hay bloques aún</p>}
         {blocks.slice(1).map((block) => (
             <>
                 <div key={block.block_id} className="data-container">
-
                     <p><strong>Block ID:</strong> {block.block_id}</p>
                     <p><strong>Hash:</strong> {block.block_hash}</p>
                     <p><strong>Prev Hash:</strong> {block.previous_hash}</p>

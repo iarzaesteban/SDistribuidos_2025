@@ -1,0 +1,23 @@
+.earring-info-container{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.earring-details{
+    background-color: #f9f9f9;
+    border-radius: .5rem;
+}
+
+.tx-card {
+    border: 1px solid #ddd;
+    padding: 8px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+}
+
+.ver-mas{
+    width: 15rem;
+    height: 3rem;
+    padding: 0;
+}

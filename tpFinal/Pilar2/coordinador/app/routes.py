@@ -91,6 +91,17 @@ async def get_block(block_hash: str):
     raise HTTPException(status_code=404, detail="Bloque no encontrado")
 
 
+@router.get("/get-earrings-transactions")
+async def get_earrings_transactions():
+    try:
+        rabbit_client = RabbitMQClient(queue_name=EARRING_QUEUE)
+        messages = rabbit_client.get_all_messages()
+        rabbit_client.close()
+        return {"count": len(messages), "transactions": messages}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener transacciones de earring: {str(e)}")
+   
+
 @router.get("/get-transaction/{tx_id}")
 async def get_transaction(tx_id: str):
     logger.info(f"Vamos a buscar la Tx {tx_id}")
@@ -146,6 +157,21 @@ def get_monitoring_tasks():
     if not is_monitoring_window():
         raise HTTPException(status_code=403, detail="Ventana cerrada para obtener transacciones")
     
+    try:
+        tasks = REDIS_CLIENT.hgetall("monitoring_transactions")
+        last_hash = get_last_block_hash()
+        decoded_tasks = [json.loads(v) for v in tasks.values()]
+        return {"last_hash": last_hash,"transactions": decoded_tasks}
+    except Exception as e:
+        logger.error(f"Error al obtener transacciones de monitoreo: {str(e)}")
+        return {"error": "No se pudieron obtener las transacciones"}
+    
+
+@router.get("/get-in-progress-txs")
+def get_in_progress_tx():
+    """
+        Devuelve todas las transacciones monitoreadas sin desencolarlas.
+    """  
     try:
         tasks = REDIS_CLIENT.hgetall("monitoring_transactions")
         last_hash = get_last_block_hash()
