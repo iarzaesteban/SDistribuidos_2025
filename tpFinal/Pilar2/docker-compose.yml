@@ -78,20 +78,20 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
 
-  pool:
-    build:
-      context: ./pool
-      dockerfile: deploy/Dockerfile
-    restart: unless-stopped
-    ports:
-      - "9998:9998"
-    depends_on:
-      nct:
-        condition: service_healthy
-    env_file:
-      - .env
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
+  # pool:
+  #   build:
+  #     context: ./pool
+  #     dockerfile: deploy/Dockerfile
+  #   restart: unless-stopped
+  #   ports:
+  #     - "9998:9998"
+  #   depends_on:
+  #     nct:
+  #       condition: service_healthy
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - /etc/localtime:/etc/localtime:ro
 
   worker-mock-1:
     build:
@@ -107,33 +107,33 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
 
-  worker-mock-2:
-    build:
-      context: ./worker_mock
-      dockerfile: deploy/Dockerfile
-    env_file:
-      - .env
-    environment:
-      - WORKER_NAME=worker-mock-2
-    depends_on:
-      nct:
-        condition: service_healthy
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
+  # worker-mock-2:
+  #   build:
+  #     context: ./worker_mock
+  #     dockerfile: deploy/Dockerfile
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - WORKER_NAME=worker-mock-2
+  #   depends_on:
+  #     nct:
+  #       condition: service_healthy
+  #   volumes:
+  #     - /etc/localtime:/etc/localtime:ro
 
-  worker-mock-3:
-    build:
-      context: ./worker_mock
-      dockerfile: deploy/Dockerfile
-    env_file:
-      - .env
-    environment:
-      - WORKER_NAME=worker-mock-3
-    depends_on:
-      nct:
-        condition: service_healthy
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
+  # worker-mock-3:
+  #   build:
+  #     context: ./worker_mock
+  #     dockerfile: deploy/Dockerfile
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - WORKER_NAME=worker-mock-3
+  #   depends_on:
+  #     nct:
+  #       condition: service_healthy
+  #   volumes:
+  #     - /etc/localtime:/etc/localtime:ro
 
 volumes:
   redis_data:

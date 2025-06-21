@@ -34,7 +34,6 @@ export const useBlockchainViewer = () => {
                 const response = await axios.get<InProgressTxResponse>(
                     `${COORDINADOR_URL}/get-in-progress-txs`
                 );
-                console.log("response es ", response)
                 setInProgressTxs(response.data.transactions);
                 setError("");
             } catch (err) {

@@ -1,32 +1,57 @@
 .blockchain-viewer-container {
     display: flex;
+    flex-direction: column;
+
 }
 
 .sidebar {
-    width: 200px;
+    width: 100%;
     background-color: #f7f7f7;
     border-right: 1px solid #ddd;
-    padding: 1rem;
 }
 
 .sidebar ul {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 2rem;
+    font-size: 1.5rem;
+    font-weight: bold;
     list-style: none;
     padding: 0;
+    margin: 0 .2rem;
 }
 
 .sidebar li {
-    margin: 1rem 0;
+    text-align: center;
+    color: #fff;
+    background-color: rgb(15, 6, 120);
+    border: .3rem solid rgb(143, 107, 241);
+    width: 20rem;
     cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 4px;
+    border: .2rem solid #000;
+    padding: 1rem;
+    border-radius: .5rem;
     transition: background-color 0.2s ease;
 }
 
 .sidebar li:hover {
-    background-color: #e0e0e0;
+    animation: zoomIn 0.8s;
 }
 
 .main-content {
-    flex: 1;
-    padding: 1rem;
+    text-align: center;
+}
+
+
+@keyframes zoomIn {
+    from {
+        transform: scale(1.2);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
