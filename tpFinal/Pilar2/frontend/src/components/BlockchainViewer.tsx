@@ -4,7 +4,7 @@ import "./BlockchainViewer.css";
 import { useBlockchainViewer } from "./use-blockchain-viewer"
 import CreateTask from "../pages/CreateTask/CreateTask";
 import { LastBlockChained } from "./LastBlockChained/LastBlockChained";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 
 const BlockchainViewer = () => {
@@ -16,17 +16,10 @@ const BlockchainViewer = () => {
         blockchain,
         genesisBlock,
         lastChainedBlock,
-        createTask,
         error,
     } = useBlockchainViewer();
 
     const [activeTab, setActiveTab] = useState<string>("blockchain");
-
-    useEffect(()=>{
-        if(!createTask){
-            setActiveTab("blockchain");
-        }
-    },[createTask])
 
     const handleTabChange = (tab: string) => {
         setActiveTab(tab);
@@ -66,7 +59,7 @@ const BlockchainViewer = () => {
                 {activeTab === "blockchain" && blockchain && <Blockchain blocks={blockchain} />}
                 {activeTab === "genesis" && genesisBlock && <GenesisBlock genesisBlock={genesisBlock} />}
                 {activeTab === "last" && lastChainedBlock && <LastBlockChained lastChainedBlock={lastChainedBlock} />}
-                {activeTab === "create" && <CreateTask handleCreateTask={handleCreateTask} />}
+                {activeTab === "create" && <CreateTask />}
             </main>
         </div>
     );

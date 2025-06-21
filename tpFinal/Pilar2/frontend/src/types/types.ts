@@ -1,4 +1,5 @@
 export interface Config {
+    hash_algorithm: string;
     max_tries_per_tx: number;
     monitoring_window_start: number;
     monitoring_window_end: number;

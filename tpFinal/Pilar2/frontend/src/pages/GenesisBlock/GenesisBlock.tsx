@@ -15,6 +15,7 @@ export const GenesisBlock = ({ genesisBlock }: BlockchainProperties) => (
             <p><strong>Nombre del Bloque:</strong> {genesisBlock.transaction.block_name}</p>
             <div>
                 <p className="subtitle">Configuracion:</p>
+                <p><strong>Algoritmo de hash:</strong> {genesisBlock.config.hash_algorithm}</p>
                 <p><strong>Cantidad de intentos:</strong> {genesisBlock.config.max_tries_per_tx}</p>
                 <p><strong>Inicio ventana solicitar tareas:</strong> {genesisBlock.config.monitoring_window_start}</p>
                 <p><strong>Fin ventana para solicitar tareas:</strong> {genesisBlock.config.monitoring_window_end}</p>

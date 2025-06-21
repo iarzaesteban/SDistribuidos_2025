@@ -85,6 +85,7 @@ def generate_genesis_block():
             "block_name": "GENESIS"
         },
         "config": {
+            "hash_algorithm": "sha1",
             "max_tries_per_tx": 6,
             "monitoring_window_start": 6,
             "monitoring_window_end": 10,
@@ -149,12 +150,10 @@ class Transaction(BaseModel):
         Verifica que la firma sea válida utilizando la clave pública del source.
         """
         try:
-            logger.info("Leggamos hasta acaaaaa")
 
             # Decodificamos la clave pública
             pub_key_bytes = bytes.fromhex(self.source)
             public_key = Ed25519PublicKey.from_public_bytes(pub_key_bytes)
-            logger.info("Leggamos hasta acaaaaa1")
             # Verificamos rango de timestamp
             timestamp_dt = datetime.fromisoformat(self.timestamp)
             now = datetime.now(timezone.utc)
@@ -165,20 +164,10 @@ class Transaction(BaseModel):
             if now - timestamp_dt > timedelta(minutes=5):
                 logger.warning("Timestamp muy viejo.")
                 return False
-            logger.info("Leggamos hasta acaaaaa2")
             # Armamos mensaje con el mismo orden que el cliente
             message = f"{self.source}{self.target}{self.amount}{self.description}{self.timestamp}".encode()
-            logger.info(f"Source: {self.source}")
-            logger.info(f"Target: {self.target}")
-            logger.info(f"Amount: {self.amount}")
-            logger.info(f"Description: {self.description}")
-            logger.info(f"Timestamp: {self.timestamp}")
-            logger.info(f"Mensaje backend: {message}")
-            logger.info("Leggamos hasta acaaaaa3")
             signature_bytes = base64.b64decode(self.sign)
-            logger.info("Leggamos hasta acaaaaa4")
             public_key.verify(signature_bytes, message)
-            logger.info("Leggamos hasta acaaaaa5")
 
             logger.info("Firma verificada correctamente.")
             return True

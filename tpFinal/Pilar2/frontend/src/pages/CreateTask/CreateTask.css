@@ -13,6 +13,13 @@
     border-radius: .5rem;
 }
 
+.create-task-form{
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+}
+
 .create-task-container h1 {
     margin: .5rem;
 }
