@@ -1,19 +1,28 @@
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 
-# Instalar herramientas necesarias
-RUN apt-get update && apt-get install -y build-essential python3 python3-pip
+# 1. Instalar Python y dependencias
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      build-essential \
+      python3 \
+      python3-pip && \
+    rm -rf /var/lib/apt/lists/*
 
-# Instalar dependencias Python
+# 2. Crear directorio de trabajo
+WORKDIR /app
+
+# 3. Instalar requerimientos
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Copiar archivos fuente CUDA
-COPY main.cu md5.cu md5.cuh config.h ./
+# 4. Copiar todo el código fuente
+COPY . .
 
-# Compilar el ejecutable
-RUN nvcc -arch=sm_75 main.cu md5.cu -o brute_range
+# 5. Compilar el código CUDA
+RUN nvcc -o brute_range main.cu md5.cu \
+    -gencode arch=compute_50,code=sm_50 \
+    -gencode arch=compute_75,code=sm_75 \
+    -gencode arch=compute_50,code=compute_50
 
-# Copiar script Python
-COPY worker.py .
-
+# 6. Ejecutar el worker
 CMD ["python3", "worker.py"]

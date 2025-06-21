@@ -17,22 +17,20 @@ services:
       timeout: 3s
       retries: 5
 
-
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
-
 
   nct:
     build:
@@ -134,6 +132,24 @@ services:
         condition: service_healthy
     volumes:
       - /etc/localtime:/etc/localtime:ro
+
+  worker-real:
+    build:
+      context: ./worker-real
+      dockerfile: Dockerfile
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - RABBITMQ_HOST=rabbitmq
+      - REDIS_HOST=redis
+      - WORKER_ID=worker-real
+    depends_on:
+      nct:
+        condition: service_healthy
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    env_file:
+      - .env
 
 volumes:
   redis_data:

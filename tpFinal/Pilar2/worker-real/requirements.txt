@@ -1,2 +1,12 @@
 pika
 redis
+requests>=2.0.0
+requests
+python-dotenv
+cryptography
+loguru
+pydantic
+asyncio
+aiohttp
+uvicorn
+fastapi
