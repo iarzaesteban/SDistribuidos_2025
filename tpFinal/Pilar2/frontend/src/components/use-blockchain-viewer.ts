@@ -19,6 +19,11 @@ export const useBlockchainViewer = () => {
         setCreateTask(!createTask);
     }
 
+    const handleStressTask = () => {
+        cleanData();
+        setCreateTask(!createTask);
+    }
+    
     const fetchBlockchain = async () => {
         try {
             cleanData();
@@ -35,7 +40,6 @@ export const useBlockchainViewer = () => {
         try {
             cleanData();
             const response = await axios.get(COORDINADOR_URL + '/genesis-block');
-            console.log("La respomse es", response)
             setGenesisBlock(response.data);
             setError("");
         } catch (err) {
@@ -60,6 +64,7 @@ export const useBlockchainViewer = () => {
         fetchBlockchain,
         fetchGenesisBlock,
         handleCreateTask,
+        handleStressTask,
         fetchLastChainedBlock,
         blockchain,
         genesisBlock,

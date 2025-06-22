@@ -35,7 +35,6 @@ resource "kubernetes_persistent_volume_claim" "rabbitmq_pvc" {
       }
     }
     storage_class_name = "standard"
-    # Si tenés una SC SSD regional distinta, reemplazá "standard" por su nombre.
   }
 }
 

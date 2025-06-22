@@ -30,7 +30,10 @@ def get_container_ip():
 def get_sufix_for_pub_key():
     global TARGET_SUFFIX
     ip_split = get_container_ip().split(".")
-    TARGET_SUFFIX = ip_split[1] + ip_split[2] + ip_split[3]
+    last_numbers = ip_split[1] + ip_split[2] + ip_split[3]
+    TARGET_SUFFIX = last_numbers[1:]
+    if len(last_numbers) > 4:
+        TARGET_SUFFIX = last_numbers[1:] 
     logger.info(f"[KEYGEN] Sufijo buscado para clave pública: {TARGET_SUFFIX}")
 
 class Transaction(BaseModel):

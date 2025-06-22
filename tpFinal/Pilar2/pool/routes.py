@@ -62,13 +62,11 @@ def list_registered_workers():
 @router.post("/mine-result")
 async def mine_result(request: Request):
     WORKER_PRIVATE_KEY, WORKER_PUBLIC_KEY_HEX = get_keys()
-    logger.info(f" WORKER_PUBLIC_KEY_HEX ------ --> {WORKER_PUBLIC_KEY_HEX}")
     data = await request.json()
     tx = Transaction(**data['transaction'])
     worker_ip = data["worker_ip"]
     valid = validar_hash(tx)
-    logger.info(f" data em mine result vbebe  es --> {data}")
-    logger.info(f" valid es --> {valid}")
+
     tx_key = f"tx:{tx.tx_id}"
 
     # Validamos si la transacción sigue existiendo en Redis (no fue publicada)

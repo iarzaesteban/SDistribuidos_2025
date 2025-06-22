@@ -12,6 +12,10 @@
     margin: 0 auto;
 }
 
+.genesis-block-container{
+    text-align: center;
+}
+
 .statistics-container__form {
     display: flex;
     flex-direction: column;

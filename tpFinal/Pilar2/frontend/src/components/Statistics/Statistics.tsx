@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './Statistics.css';
 
-import { useBlockchainViewer } from './use-statistics';
+import { useStatistics } from './use-statistics';
 import { InProgressTxs } from './InProgressTxs/InProgressTxs';
 import { WorkerInfo } from './WorkerInfo/WorkerInfo';
 import { EarringTasks } from './EarringTasks/EarringTasks';
@@ -15,10 +15,12 @@ export const Statistics = () => {
     const {
         handleSearchTransaction,
         transaction,
+        genesisBlock,
+        currentWindow,
         status,
         workers,
         earringTxs,
-        inProgressTxs} = useBlockchainViewer();
+        inProgressTxs } = useStatistics();
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,6 +34,11 @@ export const Statistics = () => {
     return (
         <section className="statistics-container">
             <h1 className="title">Información util</h1>
+            {genesisBlock && (
+                <div className="genesis-block-container">
+                    <p style={{ fontWeight: 'bold', color: 'green' }}>{currentWindow}</p>
+                </div>
+            )}
             {transaction ? (
                 <div>
                     <div key={transaction.tx_id} className="data-container">
@@ -73,8 +80,8 @@ export const Statistics = () => {
                 showInProgress={showInProgress}
                 setShowInProgress={setShowInProgress}
             />
-            <EarringTasks 
-                earringTxs={earringTxs} 
+            <EarringTasks
+                earringTxs={earringTxs}
                 showEarring={showEarring}
                 setShowEarring={setShowEarring}
             />

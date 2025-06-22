@@ -216,7 +216,6 @@ def proof_of_work(tx: Transaction, nonce_start, nonce_end, difficulty, config):
 async def mine_task(request: Request):
     global CURRENT_TX_ID, STOP_MINING, WORKER_PUBLIC_KEY_HEX
     data = await request.json()
-    logger.info(f"DATA recibida --- {data} ---")
     
     tx_id = data["tx_id"]
     hash_previo = data["hash_previo"]
