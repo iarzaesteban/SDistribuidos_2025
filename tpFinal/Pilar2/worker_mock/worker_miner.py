@@ -106,7 +106,10 @@ async def mine_transactions(transactions: list[Transaction], starting_previous_h
             tx.worker_ip = WORKER_IP
             tx.pub_key = WORKER_PUBLIC_KEY_HEX
             tx.hash_previo = previous_hash
+            start_mine = time.time()
             hash = await tx.mine(prefix=tx.challenge, mock_result=MOCK_TASK_WORKER)
+            end_mine = time.time()
+            tx.mine_time = round(end_mine - start_mine, 4)
             previous_hash = hash
             mined.append(tx)
         except asyncio.CancelledError:
@@ -116,6 +119,9 @@ async def mine_transactions(transactions: list[Transaction], starting_previous_h
 
 
 async def publish_results(transactions: list[Transaction]):
+    global WORKER_PUBLIC_KEY_HEX
+    for tx in transactions:
+        tx.pub_key = WORKER_PUBLIC_KEY_HEX
     payload = {"transactions": [tx.dict() for tx in transactions]}
     async with aiohttp.ClientSession() as session:
         try:

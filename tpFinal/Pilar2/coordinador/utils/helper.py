@@ -126,6 +126,7 @@ class Transaction(BaseModel):
     tries: Optional[int] = 0
     hash: Optional[str] = None
     challenge: Optional[str] = None
+    mine_time: Optional[float] = None
 
     # De acá para abajo son los atributos para el hash
     source: str  # clave pública en base64

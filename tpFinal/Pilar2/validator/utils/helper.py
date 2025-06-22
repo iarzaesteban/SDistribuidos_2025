@@ -61,6 +61,7 @@ class Transaction(BaseModel):
     tries: Optional[int] = 0
     hash: Optional[str] = None
     challenge: Optional[str] = None
+    mine_time: Optional[float] = None
 
     # De acá para abajo son los atributos para el hash
     source: str  # clave pública en base64
@@ -201,8 +202,10 @@ def calculate_block_hash(block_id, previous_hash, transaction):
 
 def select_best_worker(txs_by_worker: Dict[str, List[Transaction]]) -> Optional[str]:
     best_worker = None
+    best_worker_default = False
     best_count = 0
     best_first_timestamp = None
+
     for pub_key, txs in txs_by_worker.items():
         # Filtrar solo transacciones procesadas (las que tienen un hash válido)
         processed_txs = [tx for tx in txs if tx.hash is not None]
@@ -224,7 +227,11 @@ def select_best_worker(txs_by_worker: Dict[str, List[Transaction]]) -> Optional[
             best_count = count
             best_first_timestamp = first_ts
 
-    return best_worker
+    if best_worker is None and txs_by_worker:
+        best_worker_default = True
+        best_worker = next(iter(txs_by_worker))
+
+    return best_worker, best_worker_default
 
 
 async def reward_worker(winner: str, amount: float):

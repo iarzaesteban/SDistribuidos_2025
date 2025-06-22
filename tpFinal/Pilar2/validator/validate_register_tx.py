@@ -37,73 +37,79 @@ def get_transaction_queue_by_id(tx_id):
 
     return json.loads(tx['body'])
 
+
 async def handle_transaction(tx: Transaction, is_winner: bool):
     tx_id = tx.tx_id
     key = f"in_progress:{tx.worker_ip}"
     valid = validar_hash(tx)
 
-    if not valid:
-        logger.info("EL hash NO es válido")
-        transaction = get_transaction_queue_by_id(tx_id)
-
-        if transaction['tries'] >= MAX_MINING_TRYS and len(transaction['challenge']) == len(CHALLENGE):
-            logger.info(f"La TX {transaction} tiene MAS de {MAX_MINING_TRYS} intentos, le bajamos la complejidad al desafio")
-            # Bajar complejida, seguir sumando el tries y seguir
-            transaction['challenge'] = CHALLENGE[:-1]
-            transaction['tries'] = 0
-            REDIS_CLIENT.hset("monitoring_transactions", transaction['tx_id'], json.dumps(transaction))
-            rabbit_in_progress.publish(transaction)
-        elif transaction['tries'] >= MAX_MINING_TRYS*2: # ya si se pasa que luego de bajar la complejida, descartarla
-            logger.info(f"La TX {transaction} tiene MAS de {MAX_MINING_TRYS*2} intentos, la marcamos como borrada")
-            transaction["status"] = TransactionStatus.borrada.value
-            REDIS_CLIENT.rpush("dropped_txs", json.dumps(transaction))
-
-            REDIS_CLIENT.hdel("monitoring_transactions", tx_id)
-            rabbit_in_progress.delete_message_by_txid(tx_id)
-        else:
-            transaction['tries'] = transaction.get('tries', 0) + 1
-            REDIS_CLIENT.hset("monitoring_transactions", transaction['tx_id'], json.dumps(transaction))
-            rabbit_in_progress.publish(transaction)
+    transaction = get_transaction_queue_by_id(tx_id)
+    if not transaction:
+        logger.warning(f"Transacción {tx_id} no encontrada en RabbitMQ in_progress")
         return
-        
-    logger.info("EL hash ES válido")
-    if is_winner:
-        # Obtenemos un ID único e incremental para el bloque
+
+    if valid and is_winner:
+        logger.info("EL hash ES válido y el worker es ganador. Encadenando...")
+
+        # Obtener ID de bloque
         if not REDIS_CLIENT.exists("block_id_counter"):
             REDIS_CLIENT.set("block_id_counter", 0)
         block_id = REDIS_CLIENT.incr("block_id_counter")
-        # Preparamos el nuevo bloque
+
         block_data = {
             "block_id": block_id,
             "previous_hash": tx.hash_previo,
+            "mine_time": tx.mine_time,
             "nonce": tx.nonce,
-            "miner": tx.pub_key, # o poner el la pub del source o la ip del worker
+            "miner": tx.pub_key,
             "prefix": tx.challenge,
             "transaction": tx.to_dict()
         }
 
-        # Agregamos nuevo bloque
         REDIS_CLIENT.set(f"block:{tx.hash}", json.dumps(block_data))
         REDIS_CLIENT.set("last_block", tx.hash)
 
-        # Borramos la transacción porque ya fue precesada
+        # Eliminar de Redis y Rabbit
         REDIS_CLIENT.hdel("monitoring_transactions", tx_id)
         rabbit_in_progress.delete_message_by_txid(tx_id)
         REDIS_CLIENT.delete(key)
-        
+
         logger.info(f"Tx {tx_id} validada y agregada al bloque {tx.hash}")
+    else:
+        logger.info("EL hash NO es válido o el worker NO es ganador. Procesando para reintento...")
+
+        # Verificación y actualización de tries
+        tries = transaction.get('tries', 0) + 1
+        transaction['tries'] = tries
+
+        if tries >= MAX_MINING_TRYS and len(transaction['challenge']) == len(CHALLENGE):
+            logger.info(f"TX {tx_id} superó {MAX_MINING_TRYS} intentos, bajando dificultad...")
+            transaction['challenge'] = CHALLENGE[:-1]
+            transaction['tries'] = 0  # resetea intentos
+        elif tries >= MAX_MINING_TRYS * 2:
+            logger.info(f"TX {tx_id} superó el máximo de intentos tras bajar dificultad. Se descarta.")
+            transaction["status"] = TransactionStatus.borrada.value
+            REDIS_CLIENT.rpush("dropped_txs", json.dumps(transaction))
+            REDIS_CLIENT.hdel("monitoring_transactions", tx_id)
+            rabbit_in_progress.delete_message_by_txid(tx_id)
+            return  # no se vuelve a publicar
+        else:
+            logger.info(f"TX {tx_id} incrementa a {transaction['tries']} intentos.")
+
+        # Actualizar en Redis y RabbitMQ
+        REDIS_CLIENT.hset("monitoring_transactions", tx_id, json.dumps(transaction))
+        rabbit_in_progress.publish(transaction) 
 
 
 async def process_transactions_and_reward(txs_by_worker: Dict[str, List[Transaction]]):
-    winner_pub_key = select_best_worker(txs_by_worker)
+    winner_pub_key, best_worker_default = select_best_worker(txs_by_worker)
     logger.info(f"Worker ganador: {winner_pub_key if winner_pub_key else 'Ninguno'}")
 
-    for worker_pub_key, txs in txs_by_worker.items():
-        is_winner = (worker_pub_key == winner_pub_key)
-        for tx in txs:
-            await handle_transaction(tx, is_winner)
+    winner_txs = txs_by_worker[winner_pub_key]
+    for tx in winner_txs:
+        await handle_transaction(tx, is_winner=True)
 
-    if winner_pub_key:
+    if winner_pub_key and not best_worker_default:
         reward_amount = round(MAX_COINS * 0.001, 4)
         reward_block = create_reward_block(winner_pub_key, reward_amount)
         await reward_worker(winner_pub_key, round(MAX_COINS * 0.001, 4))
@@ -138,7 +144,7 @@ async def monitor_pending_transactions(genesis_config):
 
             REDIS_CLIENT.delete("pending_transactions")
             txs_by_worker: Dict[str, List[Transaction]] = {}
-
+            
             for raw in raw_txs:
                 try:
                     tx_data = json.loads(raw)
@@ -146,7 +152,7 @@ async def monitor_pending_transactions(genesis_config):
                     txs_by_worker.setdefault(tx.pub_key, []).append(tx)
                 except Exception as ex:
                     logger.warning(f"Transacción mal formada: {ex}")
-
+            
             await process_transactions_and_reward(txs_by_worker)
 
         except Exception as e:
@@ -179,3 +185,4 @@ if __name__ == "__main__":
         time.sleep(1)
 
     logger.info("Proceso de validador finalizado correctamente.")
+

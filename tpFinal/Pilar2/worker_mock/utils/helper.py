@@ -48,6 +48,7 @@ class Transaction(BaseModel):
     hash_previo: Optional[str] = None
     nonce: Optional[int] = 0
     challenge: Optional[str] = None
+    mine_time: Optional[float] = None
     
     tx_id: str
     source: str
