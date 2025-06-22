@@ -10,7 +10,8 @@ $services = @(
     @{ name = "worker-mock-1";   path = "Pilar2/worker_mock"; df = "deploy/Dockerfile" },
     @{ name = "worker-mock-2";   path = "Pilar2/worker_mock"; df = "deploy/Dockerfile" },
     @{ name = "worker-mock-3";   path = "Pilar2/worker_mock"; df = "deploy/Dockerfile" },
-    @{ name = "worker-real";     path = "Pilar2/worker-real"; df = "Dockerfile" }
+    @{ name = "worker-real";     path = "Pilar2/worker-real"; df = "Dockerfile" },
+    @{ name = "frontend";        path = "pilar3-test-k8s/frontend"; df = "Dockerfile" }
 )
 
 Write-Host "🔐 Autenticando Docker con GCloud..."

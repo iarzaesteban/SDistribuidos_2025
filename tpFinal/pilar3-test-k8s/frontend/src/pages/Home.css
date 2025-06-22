@@ -1,0 +1,14 @@
+body {
+    margin: 0;
+}
+
+.container {
+    background-color: #8a8484;
+    border: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 auto;
+    height: 500vh;
+}

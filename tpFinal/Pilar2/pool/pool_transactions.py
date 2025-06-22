@@ -51,7 +51,10 @@ async def mining_cycle():
                     State.last_hash = fetched_previous_hash
                     for tx in transactions:
                         push_tx_to_queue(tx)
-                    await assign_next_tx_to_workers()
+                    try:
+                        await assign_next_tx_to_workers()
+                    except Exception as e:
+                        logger.error(f"[POOL] Error asignando tareas a workers: {e}")
 
             elif current_window == 'publishing':
                 logger.info("[POOL] Ventana PUBLISHING activa: publicando resultados.")
@@ -79,6 +82,7 @@ async def mining_cycle():
             last_window = current_window
 
         await asyncio.sleep(0.5)
+
 
 
 async def sync_with_coordinator():
@@ -128,13 +132,26 @@ async def startup_event():
     try:
         global GENESIS_BLOCK
         await generate_worker_key()
-        GENESIS_BLOCK = await fetch_genesis_block()
+
+        # Reintenta hasta 10 veces (2s entre cada una) para obtener el bloque génesis
+        for attempt in range(10):
+            GENESIS_BLOCK = await fetch_genesis_block()
+            if GENESIS_BLOCK and 'config' in GENESIS_BLOCK:
+                break
+            logger.warning(f"[POOL] Intento {attempt+1}/10: génesis no disponible. Reintentando en 2s...")
+            await asyncio.sleep(2)
+
+        if not GENESIS_BLOCK or 'config' not in GENESIS_BLOCK:
+            logger.critical("[POOL] No se pudo obtener GENESIS_BLOCK con config. Abortando inicio.")
+            return
+
         asyncio.create_task(mining_cycle())
         asyncio.create_task(sync_with_coordinator())
 
-        logger.info("Pool Service started sussefully")
+        logger.info("Pool Service started successfully")
     except Exception as e:
         logger.error(f"Error al correr el Pool de TXs: {e}")
+
 
     
 @app.on_event("shutdown")

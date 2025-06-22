@@ -43,9 +43,9 @@ def get_container_ip():
 
 def get_sufix_for_pub_key():
     global TARGET_SUFFIX
-    ip_split = get_container_ip().split(".")
-    TARGET_SUFFIX = ip_split[1] + ip_split[2] + ip_split[3]
+    TARGET_SUFFIX = "999"
     logger.info(f"[KEYGEN] Sufijo buscado para clave pública: {TARGET_SUFFIX}")
+
     
 REDIS_CLIENT = redis.Redis(
         host=REDIS_HOST,
@@ -307,10 +307,13 @@ async def assign_next_tx_to_workers():
 
     tasks = prepare_task_for_workers(tx, State.last_hash, difficulty)
 
-    # Enviamos la tarea a todos los workers (de a una)
-    await asyncio.gather(*[dispatch_task_to_worker(task) for task in tasks])
+    if not tasks:
+        logger.warning("[POOL] No se generaron tareas porque no hay workers disponibles.")
+        return
 
+    await asyncio.gather(*[dispatch_task_to_worker(task) for task in tasks])
     logger.info(f"[POOL] Tarea enviada a TODOS los workers para tx_id={tx.tx_id}")
+
 
 
 
