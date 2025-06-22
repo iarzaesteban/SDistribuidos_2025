@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mover
+  namespace: pilar3-test
+  labels:
+    app: mover
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mover
+  template:
+    metadata:
+      labels:
+        app: mover
+    spec:
+      containers:
+        - name: mover
+          image: gcr.io/blockchainsd2025/mover:latest
+          envFrom:
+            - configMapRef:
+                name: blockchain-config
+            - secretRef:
+                name: blockchain-secrets

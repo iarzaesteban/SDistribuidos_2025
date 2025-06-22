@@ -119,7 +119,13 @@ async def process_transactions_and_reward(txs_by_worker: Dict[str, List[Transact
 async def monitor_pending_transactions(genesis_config):
     while not shutdown_event.is_set():
         try:
+            if 'publish_window_end' not in genesis_config or 'publish_window_start' not in genesis_config or 'window_period_seconds' not in genesis_config:
+                logger.error(f"[ERROR] Configuración incompleta en genesis_config: {genesis_config}")
+                await asyncio.sleep(5)
+                continue
+
             wait_time = seconds_until_publish_window(genesis_config)
+
             logger.info(f"Esperando {wait_time} segundos hasta el inicio de la ventana de publicación...")
             await asyncio.sleep(wait_time)
 

@@ -29,11 +29,12 @@ def get_container_ip():
 
 def get_sufix_for_pub_key():
     global TARGET_SUFFIX
-    ip_split = get_container_ip().split(".")
-    last_numbers = ip_split[1] + ip_split[2] + ip_split[3]
-    TARGET_SUFFIX = last_numbers[1:]
-    if len(last_numbers) > 4:
-        TARGET_SUFFIX = last_numbers[1:] 
+    env_suffix = os.getenv("TARGET_SUFFIX")
+    if env_suffix:
+        TARGET_SUFFIX = env_suffix
+    else:
+        ip_split = get_container_ip().split(".")
+        TARGET_SUFFIX = ip_split[1] + ip_split[2] + ip_split[3]
     logger.info(f"[KEYGEN] Sufijo buscado para clave pública: {TARGET_SUFFIX}")
 
 class Transaction(BaseModel):
@@ -51,7 +52,6 @@ class Transaction(BaseModel):
     description: str
     timestamp: str
     sign: str
-    
 
     def to_string(self, include_nonce=True):
         parts = [
@@ -76,7 +76,6 @@ class Transaction(BaseModel):
 
     async def mine(self, prefix: str = None, mock_result: bool = False):
         self.nonce = 0
-
         while True:
             hash_ = self.compute_hash()
             if hash_.startswith(prefix):
@@ -96,7 +95,6 @@ def fetch_transactions() -> List[Transaction]:
     except Exception as e:
         logger.error(f"[ERROR] No se pudo consultar el coordinador: {e}")
         return []
-    
 
 def generate_key_pair():
     private_key = ed25519.Ed25519PrivateKey.generate()
@@ -138,4 +136,3 @@ async def generate_worker_key():
             private_key_obj = serialization.load_pem_private_key(priv_pem, password=None)
             logger.info(f"[KEYGEN] Clave encontrada: {public_hex}")
             return private_key_obj, public_hex
-

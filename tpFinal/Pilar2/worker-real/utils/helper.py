@@ -9,6 +9,9 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
 
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=".env.local")
+
 from utils.logger import logger
 
 COORDINATOR_URL = os.getenv("COORDINATOR_URL", "http://nct:8989")
@@ -22,7 +25,7 @@ WORKER_MODE = os.getenv("WORKER_MODE", "COORDINADOR")
 WORKER_TYPE = os.getenv("WORKER_TYPE", "CPU")
 MAX_WORKERS = os.cpu_count()
 
-TARGET_SUFFIX = None
+TARGET_SUFFIX = os.getenv("TARGET_SUFFIX", None)
 
 def get_container_ip():
     return socket.gethostbyname(socket.gethostname())
@@ -105,7 +108,7 @@ def generate_key_pair():
     )
     public_hex = public_bytes.hex()
 
-    if public_hex.startswith(TARGET_SUFFIX):
+    if TARGET_SUFFIX is None or public_hex.startswith(TARGET_SUFFIX):
         priv_pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,

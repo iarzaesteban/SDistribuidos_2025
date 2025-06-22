@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pilar3-test
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blockchain-config
+  namespace: pilar3-test
+  labels:
+    app: blockchain
+  
+data:
+    REDIS_HOST: redis
+    REDIS_PORT: "6379"
+    RABBITMQ_USER: admin
+    RABBITMQ_HOST: rabbitmq
+    RABBITMQ_PORT: "5672"
+    EARRING_QUEUE: earring
+    MONITORING_IN_PROGRESS_QUEUE: monitoring_in_progress
+    IN_PROGRESS_QUEUE: in_progress
+    TIMEOUT_RONDA_SET: "1200"
+    MAX_MINING_TRYS: "3"
+    TIMEOUT_RESULTS_SEG: "60"
+    MAX_COINS: "20000000"
+    HASH_ALGORITHM: sha
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: blockchain-secrets
+  namespace: pilar3-test
+  labels:
+    app: blockchain
+stringData:
+    REDIS_PASSWORD: thebestpassever
+    RABBITMQ_PASS: admin

@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pool
+  namespace: pilar3-test
+  labels:
+    app: pool
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pool
+  template:
+    metadata:
+      labels:
+        app: pool
+    spec:
+      containers:
+        - name: pool
+          image: gcr.io/blockchainsd2025/pool:latest
+          ports:
+            - containerPort: 9998
+          envFrom:
+            - configMapRef:
+                name: blockchain-config
+            - secretRef:
+                name: blockchain-secrets
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pool
+  namespace: pilar3-test
+  labels:
+    app: pool
+spec:
+  type: ClusterIP
+  selector:
+    app: pool
+  ports:
+    - port: 9998
+      targetPort: 9998

@@ -10,3 +10,5 @@ asyncio
 aiohttp
 uvicorn
 fastapi
+dotenv
+aiohttp
