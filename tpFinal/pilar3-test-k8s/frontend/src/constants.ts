@@ -1,0 +1,1 @@
+export const COORDINADOR_URL = "http://34.39.144.57:8989/nct";

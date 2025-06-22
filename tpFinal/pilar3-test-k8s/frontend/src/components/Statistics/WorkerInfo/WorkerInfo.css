@@ -1,0 +1,36 @@
+
+.worker-info-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.worker-card {
+    margin-top: .3rem;
+    border: .3rem solid #000;
+    border-radius: .5rem;
+    padding: 0 2rem;
+}
+
+.worker-info-container {
+    margin-top: 20px;
+}
+
+.workers-details {
+    margin-top: 10px;
+    background-color: #f9f9f9;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.ver-mas{
+    width: 15rem;
+    height: 3rem;
+    padding: 0;
+}
+
+.tx-card, .worker-card {
+    border: 1px solid #ddd;
+    padding: 8px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+}
