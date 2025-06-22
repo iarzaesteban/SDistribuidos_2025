@@ -38,15 +38,14 @@ export const Blockchain = ({ blocks }: BlockchainProperties) => (
                         <th>Target</th>
                         <th>Amount</th>
                         <th>Description</th>
-                        <th>Timestamp</th>
                     </tr>
                 </thead>
                 <tbody>
                     {blocks.slice(1).map((block) => (
                         <tr key={block.block_id}>
                             <td>{block.block_id}</td>
-                            <td>{block.block_hash}</td>
-                            <td>{block.previous_hash}</td>
+                            <td>{block.block_hash.slice(0, 15)}</td>
+                            <td>{block.previous_hash.slice(0, 15)}</td>
                             <td>
                                 {block.miner === "COORDINATOR"
                                     ? "Coordinador"
@@ -61,8 +60,9 @@ export const Blockchain = ({ blocks }: BlockchainProperties) => (
                             </td>
                             <td>{block.transaction.target.slice(0, 4)}</td>
                             <td>{block.transaction.amount}</td>
-                            <td>{block.transaction.description}</td>
-                            <td>{formatTimestamp(block.transaction.timestamp)}</td>
+                            <td style={{ maxWidth: '60px', wordBreak: 'break-word' }}>
+                                {block.transaction.description}
+                            </td>
                         </tr>
                     ))}
                 </tbody>
