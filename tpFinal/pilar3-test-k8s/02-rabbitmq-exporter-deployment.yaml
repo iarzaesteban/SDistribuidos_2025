@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-exporter
+  namespace: pilar3-test
+  labels:
+    app: rabbitmq-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq-exporter
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-exporter
+    spec:
+      containers:
+        - name: exporter
+          image: kbudde/rabbitmq-exporter:1.0.0-RC21
+          # ----> eliminamos section args:<...>
+          env:
+            # URL a la API de Management
+            - name: RABBIT_URL
+              value: "http://rabbitmq.pilar3-test.svc.cluster.local:15672"
+            # Usuario desde tu ConfigMap existente
+            - name: RABBIT_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: blockchain-config
+                  key: RABBITMQ_USER
+            # Contraseña desde tu Secret existente
+            - name: RABBIT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: blockchain-secrets
+                  key: RABBITMQ_PASS
+            # opcional: tipo de conexión, default es "direct"
+            - name: RABBIT_CONNECTION
+              value: "direct"
+          ports:
+            - name: metrics
+              containerPort: 9419
+              protocol: TCP
