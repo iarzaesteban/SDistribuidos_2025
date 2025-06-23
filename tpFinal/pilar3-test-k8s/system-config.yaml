@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: system-config
+  namespace: pilar3-test
+data:
+  REDIS_HOST: redis
+  REDIS_PORT: '6379'
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PORT: '5672'
+  EARRING_QUEUE: earring
+  IN_PROGRESS_QUEUE: in_progress
+  CHALLENGE: '000'
+  RESOLUTION_INTERVAL: '120'
+  MAX_MINING_TRYS: '2'
+  TIMEOUT_RESULTS_SEG: '60'
+  ROUND_PERIOD: '60'
+  MAX_COINS: '20000000'
+  HASH_ALGORITHM: sha1
+  POLL_INTERVAL: '30'
+  COORDINATOR_URL: http://nct:8989
+  MOCK_TASK_WORKER: 'False'
+  TOTAL_NONCE_RANGE: '4000000'
+  BASE_DIFFICULTY: '4'
+  TASK_ASSIGN_INTERVAL: '30'
+  WORKER_MODE: COORDINADOR
+  POOL_URL: http://pool:9998
+  WORKER_TYPE: CPU

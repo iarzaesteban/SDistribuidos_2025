@@ -14,10 +14,31 @@ spec:
         app: frontend
     spec:
       containers:
-        - name: frontend
-          image: gcr.io/blockchainsd2025/frontend:latest
-          ports:
-            - containerPort: 80
+      - env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_PASSWORD
+              name: redis-secret
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              key: RABBITMQ_USER
+              name: rabbitmq-secret
+        - name: RABBITMQ_PASS
+          valueFrom:
+            secretKeyRef:
+              key: RABBITMQ_PASS
+              name: rabbitmq-secret
+        envFrom:
+        - configMapRef:
+            name: system-config
+        image: gcr.io/blockchainsd2025/frontend:latest
+        name: frontend
+        ports:
+        - containerPort: 80
+      nodeSelector:
+        node-type: app
 ---
 apiVersion: v1
 kind: Service
@@ -25,9 +46,9 @@ metadata:
   name: frontend
   namespace: pilar3-test
 spec:
+  ports:
+  - port: 80
+    targetPort: 80
   selector:
     app: frontend
   type: LoadBalancer
-  ports:
-    - port: 80
-      targetPort: 80

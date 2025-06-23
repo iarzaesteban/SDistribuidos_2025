@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: worker-mock-1
-  namespace: pilar3-test
   labels:
     app: worker-mock-1
+  name: worker-mock-1
+  namespace: pilar3-test
 spec:
   replicas: 1
   selector:
@@ -16,27 +16,45 @@ spec:
         app: worker-mock-1
     spec:
       containers:
-        - name: worker-mock
-          image: gcr.io/blockchainsd2025/worker-mock-1:latest
-          env:
-            - name: WORKER_NAME
-              value: worker-mock-1
-            - name: TARGET_SUFFIX
-              value: "12"
-          envFrom:
-            - configMapRef:
-                name: blockchain-config
-            - secretRef:
-                name: blockchain-secrets
-
+      - env:
+        - name: WORKER_NAME
+          value: worker-mock-1
+        - name: TARGET_SUFFIX
+          value: '12'
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_PASSWORD
+              name: redis-secret
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              key: RABBITMQ_USER
+              name: rabbitmq-secret
+        - name: RABBITMQ_PASS
+          valueFrom:
+            secretKeyRef:
+              key: RABBITMQ_PASS
+              name: rabbitmq-secret
+        envFrom:
+        - configMapRef:
+            name: blockchain-config
+        - secretRef:
+            name: blockchain-secrets
+        - configMapRef:
+            name: system-config
+        image: gcr.io/blockchainsd2025/worker-mock-1:latest
+        name: worker-mock
+      nodeSelector:
+        node-type: app
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: worker-mock-2
-  namespace: pilar3-test
   labels:
     app: worker-mock-2
+  name: worker-mock-2
+  namespace: pilar3-test
 spec:
   replicas: 1
   selector:
@@ -48,27 +66,45 @@ spec:
         app: worker-mock-2
     spec:
       containers:
-        - name: worker-mock
-          image: gcr.io/blockchainsd2025/worker-mock-2:latest
-          env:
-            - name: WORKER_NAME
-              value: worker-mock-2
-            - name: TARGET_SUFFIX
-              value: "12"
-          envFrom:
-            - configMapRef:
-                name: blockchain-config
-            - secretRef:
-                name: blockchain-secrets
-
+      - env:
+        - name: WORKER_NAME
+          value: worker-mock-2
+        - name: TARGET_SUFFIX
+          value: '12'
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_PASSWORD
+              name: redis-secret
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              key: RABBITMQ_USER
+              name: rabbitmq-secret
+        - name: RABBITMQ_PASS
+          valueFrom:
+            secretKeyRef:
+              key: RABBITMQ_PASS
+              name: rabbitmq-secret
+        envFrom:
+        - configMapRef:
+            name: blockchain-config
+        - secretRef:
+            name: blockchain-secrets
+        - configMapRef:
+            name: system-config
+        image: gcr.io/blockchainsd2025/worker-mock-2:latest
+        name: worker-mock
+      nodeSelector:
+        node-type: app
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: worker-mock-3
-  namespace: pilar3-test
   labels:
     app: worker-mock-3
+  name: worker-mock-3
+  namespace: pilar3-test
 spec:
   replicas: 1
   selector:
@@ -80,15 +116,34 @@ spec:
         app: worker-mock-3
     spec:
       containers:
-        - name: worker-mock
-          image: gcr.io/blockchainsd2025/worker-mock-3:latest
-          env:
-            - name: WORKER_NAME
-              value: worker-mock-3
-            - name: TARGET_SUFFIX
-              value: "12"
-          envFrom:
-            - configMapRef:
-                name: blockchain-config
-            - secretRef:
-                name: blockchain-secrets
+      - env:
+        - name: WORKER_NAME
+          value: worker-mock-3
+        - name: TARGET_SUFFIX
+          value: '12'
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_PASSWORD
+              name: redis-secret
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              key: RABBITMQ_USER
+              name: rabbitmq-secret
+        - name: RABBITMQ_PASS
+          valueFrom:
+            secretKeyRef:
+              key: RABBITMQ_PASS
+              name: rabbitmq-secret
+        envFrom:
+        - configMapRef:
+            name: blockchain-config
+        - secretRef:
+            name: blockchain-secrets
+        - configMapRef:
+            name: system-config
+        image: gcr.io/blockchainsd2025/worker-mock-3:latest
+        name: worker-mock
+      nodeSelector:
+        node-type: app

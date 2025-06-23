@@ -1,0 +1,13 @@
+server:
+  dev:
+    enabled: true
+  extraEnvironmentVars:
+    VAULT_DEV_ROOT_TOKEN_ID: root
+  dataStorage:
+    enabled: false
+injector:
+  enabled: false
+csi:
+  enabled: false
+ui:
+  enabled: true

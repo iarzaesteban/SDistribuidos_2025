@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nct
-  namespace: pilar3-test
   labels:
     app: nct
+  name: nct
+  namespace: pilar3-test
 spec:
   replicas: 2
   selector:
@@ -16,34 +16,53 @@ spec:
         app: nct
     spec:
       containers:
-        - name: nct
-          image: gcr.io/blockchainsd2025/nct:latest
-          ports:
-            - containerPort: 8989
-          envFrom:
-            - configMapRef:
-                name: blockchain-config
-            - secretRef:
-                name: blockchain-secrets
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 8989
-            initialDelaySeconds: 5
-            periodSeconds: 5
-
+      - env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_PASSWORD
+              name: redis-secret
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              key: RABBITMQ_USER
+              name: rabbitmq-secret
+        - name: RABBITMQ_PASS
+          valueFrom:
+            secretKeyRef:
+              key: RABBITMQ_PASS
+              name: rabbitmq-secret
+        envFrom:
+        - configMapRef:
+            name: blockchain-config
+        - secretRef:
+            name: blockchain-secrets
+        - configMapRef:
+            name: system-config
+        image: gcr.io/blockchainsd2025/nct:latest
+        name: nct
+        ports:
+        - containerPort: 8989
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8989
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      nodeSelector:
+        node-type: app
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: nct
-  namespace: pilar3-test
   labels:
     app: nct
+  name: nct
+  namespace: pilar3-test
 spec:
-  type: LoadBalancer
   ports:
-    - port: 8989
-      targetPort: 8989
+  - port: 8989
+    targetPort: 8989
   selector:
     app: nct
+  type: LoadBalancer
