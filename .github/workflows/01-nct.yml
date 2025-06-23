@@ -29,8 +29,6 @@ jobs:
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
-          cat Pilar3/infra/secrets/terraform-key.json > key.json
-          gcloud auth activate-service-account --key-file=key.json
           gcloud config set project blockchainsd2025 --quiet
           gcloud auth configure-docker gcr.io --quiet
 
