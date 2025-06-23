@@ -3,7 +3,7 @@ name: Deploy NCT (Coordinador de Tareas)
 on:
   push:
     paths:
-      - 'Pilar2/coordinador/**'
+      - 'tpFinal/tpFinal/Pilar2/coordinador/**'
       - '.github/workflows/01-nct.yml'
   workflow_dispatch:
 
@@ -14,23 +14,32 @@ jobs:
     steps:
       - name: 📥 Checkout del repositorio
         uses: actions/checkout@v3
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: blockchainsd2025
+      - name: Configure Docker to use gcloud for gcr.io
+        run: gcloud auth configure-docker gcr.io --quiet
 
       - name: 🔐 Autenticación con GCP
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
-      - name: 🔐 Escribir clave de GCP desde secrets
-        run: echo "${{ secrets.GCP_SA_KEY }}" > key.json
-      - name: 🔐 Autenticación con GCP
-        run: |
+          cat Pilar3/infra/secrets/terraform-key.json > key.json
           gcloud auth activate-service-account --key-file=key.json
+          gcloud config set project blockchainsd2025 --quiet
           gcloud auth configure-docker gcr.io --quiet
+
       - name: 🛠️ Build y Push Docker image NCT
         run: |
           docker build \
             -t gcr.io/blockchainsd2025/nct:latest \
-            -f Pilar2/coordinador/deploy/Dockerfile \
-            Pilar2/coordinador
+            -f tpFinal/tpFinal/Pilar2/coordinador/deploy/Dockerfile \
+            tpFinal/Pilar2/coordinador
           docker push gcr.io/blockchainsd2025/nct:latest
 
       - name: ☸️ Despliegue en GKE del NCT
