@@ -2,7 +2,7 @@ name: Deploy Worker Mocks
 on:
   push:
     paths:
-      - 'Pilar2/worker_mock/**'
+      - 'tpFinal/Pilar2/tpFinal/worker_mock/**'
       - '.github/workflows/05-worker-mocks.yml'
   workflow_dispatch:
 
@@ -17,7 +17,7 @@ jobs:
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
-          cat Pilar3/infra/secrets/terraform-key.json > key.json
+          cat tpFinal/Pilar3/tpFinal/infra/secrets/terraform-key.json > key.json
           gcloud auth activate-service-account --key-file=key.json
           gcloud config set project blockchainsd2025 --quiet
           gcloud auth configure-docker gcr.io --quiet
@@ -26,8 +26,8 @@ jobs:
         run: |
           docker build \
             -t gcr.io/blockchainsd2025/worker-mock:latest \
-            -f Pilar2/worker_mock/deploy/Dockerfile \
-            Pilar2/worker_mock
+            -f tpFinal/Pilar2/tpFinal/worker_mock/deploy/Dockerfile \
+            tpFinal/Pilar2/worker_mock
           docker push gcr.io/blockchainsd2025/worker-mock:latest
 
       - name: ☸️ Despliegue en GKE de Worker Mocks
@@ -35,4 +35,4 @@ jobs:
           gcloud container clusters get-credentials blockchain-cluster \
             --zone=southamerica-east1-a \
             --project=blockchainsd2025
-          kubectl apply -f pilar3-test-k8s/07-worker-mocks.yaml
+          kubectl apply -f tpFinal/pilar3-test-k8s/07-worker-mocks.yaml
