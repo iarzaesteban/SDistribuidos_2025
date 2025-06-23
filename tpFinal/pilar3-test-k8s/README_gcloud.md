@@ -16,6 +16,18 @@ Este script enviará una transacción al Coordinador en GCloud. Asegurate de ten
 
 ---
 
+## 🚀 Enviar tareas al coordinador
+
+Desde la carpeta `tpFinal\Pilar2\client`, corré el siguiente comando:
+
+```bash
+python3 stress_test.py
+```
+
+Este script enviará una o la cantidad de tarees que le indiques al Coordinador en GCloud. Asegurate de tener configurado correctamente el `.env` con la URL del coordinador y los parámetros necesarios.
+
+---
+
 ## 🔎 Ver estado de los pods
 
 ```bash

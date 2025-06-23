@@ -2,13 +2,15 @@ import argparse
 import requests
 import time
 import csv
+import os
 from nacl import signing
 from base64 import b64encode
 import random
 from datetime import datetime, timedelta
 import statistics
 
-COORDINADOR_URL = "http://localhost:8989/nct"
+COORDINADOR_URL = os.getenv("NCT_URL", "http://localhost:8989") + "/new-task"
+#COORDINADOR_URL = "http://localhost:8989/nct"
 DESCRIPTION = "Transacción desde StressTask Python"
 
 def generate_key_pairs(n):
