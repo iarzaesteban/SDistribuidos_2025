@@ -1,0 +1,37 @@
+[33m49f1989[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mtp_integrador_2025[m[33m, [m[1;31morigin/tp_integrador_2025[m[33m)[m HEAD@{0}: pull origin tp_integrador_2025 --rebase (finish): returning to refs/heads/tp_integrador_2025
+[33m49f1989[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mtp_integrador_2025[m[33m, [m[1;31morigin/tp_integrador_2025[m[33m)[m HEAD@{1}: pull origin tp_integrador_2025 --rebase (start): checkout 49f1989807b6608a4714aa4f7b6f4a587c8b2100
+[33mbebfa10[m HEAD@{2}: commit (merge): se agregan avances en deploy pilar 3
+[33m8f6f8c6[m HEAD@{3}: commit: se agregan avances en deploy pilar 3 front andando
+[33mec8ceb6[m HEAD@{4}: commit: se agregan avances probados en pilar 3
+[33m52accd4[m HEAD@{5}: pull origin tp_integrador_2025: Fast-forward
+[33m45125ed[m HEAD@{6}: pull origin tp_integrador_2025: Fast-forward
+[33m4627c4c[m HEAD@{7}: reset: moving to HEAD
+[33m4627c4c[m HEAD@{8}: pull origin tp_integrador_2025: Fast-forward
+[33m7777e2a[m HEAD@{9}: pull origin tp_integrador_2025: Fast-forward
+[33m387f58c[m HEAD@{10}: commit: Replicas y correcciones de deploy
+[33m3a07cec[m HEAD@{11}: commit: Cambios en secrets y se agrega dashboard
+[33mce21075[m HEAD@{12}: commit: secrets and vault
+[33mde5c97a[m HEAD@{13}: commit: avance sobre metricas
+[33m19e8939[m HEAD@{14}: pull origin tp_integrador_2025: Fast-forward
+[33mb47eefe[m HEAD@{15}: commit: Servicios para monitoreo
+[33mb291100[m HEAD@{16}: commit: escalado hpa
+[33m68ea777[m HEAD@{17}: commit: Integrar heartbeat en NCT
+[33m82f25f9[m HEAD@{18}: commit: add .env.secrets to .gitignore
+[33mddbd133[m HEAD@{19}: commit (amend): pilar 3.2
+[33mc2c3bf1[m HEAD@{20}: commit: pilar 3.2
+[33m18f1069[m HEAD@{21}: pull origin tp_integrador_2025: Fast-forward
+[33m22ac4d8[m HEAD@{22}: commit: pilar 3.2 start
+[33mb4dc65e[m HEAD@{23}: commit: refactor pilar 3.1
+[33mac9b5f6[m HEAD@{24}: commit: Cambios en pilar 1
+[33ma69d3da[m HEAD@{25}: pull origin tp_integrador_2025: Fast-forward
+[33m6ebf923[m HEAD@{26}: commit: arreglos pilar 3
+[33mda36ab9[m HEAD@{27}: checkout: moving from tpFinal to tp_integrador_2025
+[33m3ffabf5[m[33m ([m[1;31morigin/tpFinal[m[33m, [m[1;32mtpFinal[m[33m)[m HEAD@{28}: commit: Se avanza con el pilar 3
+[33m005c23f[m HEAD@{29}: pull origin tpFinal: Fast-forward
+[33maab7afb[m HEAD@{30}: commit: avances pilar 2
+[33m2208bc8[m HEAD@{31}: commit: avances pilar 2
+[33m78436a3[m HEAD@{32}: commit: Avances pilar 2
+[33m06c5a2d[m HEAD@{33}: pull origin tpFinal: Fast-forward
+[33mbbd034c[m HEAD@{34}: commit: Primer commit tp final
+[33m3456f94[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{35}: checkout: moving from master to tpFinal
+[33m3456f94[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{36}: clone: from https://github.com/iarzaesteban/SDistribuidos_2025.git
