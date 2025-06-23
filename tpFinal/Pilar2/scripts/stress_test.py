@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=".env.client")
 
-COORDINADOR_URL = os.getenv("NCT_URL", "http://localhost:8989") + "/new-task"
+COORDINADOR_URL = os.getenv("NCT_URL", "http://localhost:8989")
 #COORDINADOR_URL = "http://localhost:8989/nct"
 DESCRIPTION = "Transacción desde StressTask Python"
 
