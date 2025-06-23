@@ -62,6 +62,7 @@ def status():
 def new_task(tx: Transaction):
     logger.info(f"Recived transaction {tx}")
     message = f"Error, no se pudo procesar la transacción {tx}"
+    tx_id = None
     if tx.verify():
         tx_id = str(uuid.uuid4())
         tx_dict = tx.to_dict()
