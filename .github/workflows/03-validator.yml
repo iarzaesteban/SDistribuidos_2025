@@ -17,7 +17,8 @@ jobs:
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
-          cat tpFinal/Pilar3/tpFinal/infra/secrets/terraform-key.json > key.json
+      - name: 🔐 Escribir clave de GCP desde secrets
+        run: echo "${{ secrets.GCP_SA_KEY }}" > key.json
           gcloud auth activate-service-account --key-file=key.json
           gcloud config set project blockchainsd2025 --quiet
           gcloud auth configure-docker gcr.io --quiet
