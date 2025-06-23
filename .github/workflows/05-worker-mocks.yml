@@ -1,14 +1,16 @@
 name: Deploy Worker Mocks
+
 on:
   push:
     paths:
-      - 'tpFinal/tpFinal/Pilar2/worker_mock/**'
+      - 'tpFinal/Pilar2/worker_mock/**'
       - '.github/workflows/05-worker-mocks.yml'
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: 📥 Checkout del repositorio
         uses: actions/checkout@v3
@@ -22,25 +24,23 @@ jobs:
           project_id: blockchainsd2025
       - name: Configure Docker to use gcloud for gcr.io
         run: gcloud auth configure-docker gcr.io --quiet
-
       - name: 🔐 Autenticación con GCP
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
           gcloud config set project blockchainsd2025 --quiet
           gcloud auth configure-docker gcr.io --quiet
-
-      - name: 🛠️ Build y Push Docker image Worker Mock
+      - name: 🛠️ Build y Push Docker image Worker
         run: |
           docker build \
             -t gcr.io/blockchainsd2025/worker-mock:latest \
-            -f tpFinal/tpFinal/Pilar2/worker_mock/deploy/Dockerfile \
+            -f tpFinal/Pilar2/worker_mock/deploy/Dockerfile \
             tpFinal/Pilar2/worker_mock
           docker push gcr.io/blockchainsd2025/worker-mock:latest
 
-      - name: ☸️ Despliegue en GKE de Worker Mocks
+      - name: ☸️ Despliegue en GKE del Worker-mock
         run: |
           gcloud container clusters get-credentials blockchain-cluster \
             --zone=southamerica-east1-a \
             --project=blockchainsd2025
-          kubectl apply -f pilar3-test-k8s/07-worker-mocks.yaml
+          kubectl apply -f tpFinal/pilar3-test-k8s/07-worker-mocks.yaml

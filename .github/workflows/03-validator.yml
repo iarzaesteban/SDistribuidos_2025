@@ -1,14 +1,16 @@
 name: Deploy Validator
+
 on:
   push:
     paths:
-      - 'tpFinal/tpFinal/Pilar2/validator/**'
+      - 'tpFinal/Pilar2/validator/**'
       - '.github/workflows/03-validator.yml'
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: 📥 Checkout del repositorio
         uses: actions/checkout@v3
@@ -22,19 +24,17 @@ jobs:
           project_id: blockchainsd2025
       - name: Configure Docker to use gcloud for gcr.io
         run: gcloud auth configure-docker gcr.io --quiet
-
       - name: 🔐 Autenticación con GCP
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
           gcloud config set project blockchainsd2025 --quiet
           gcloud auth configure-docker gcr.io --quiet
-
       - name: 🛠️ Build y Push Docker image Validator
         run: |
           docker build \
             -t gcr.io/blockchainsd2025/validator:latest \
-            -f tpFinal/tpFinal/Pilar2/validator/deploy/Dockerfile \
+            -f tpFinal/Pilar2/validator/deploy/Dockerfile \
             tpFinal/Pilar2/validator
           docker push gcr.io/blockchainsd2025/validator:latest
 
@@ -43,4 +43,4 @@ jobs:
           gcloud container clusters get-credentials blockchain-cluster \
             --zone=southamerica-east1-a \
             --project=blockchainsd2025
-          kubectl apply -f pilar3-test-k8s/05-validator.yaml
+          kubectl apply -f tpFinal/pilar3-test-k8s/05-validator.yaml
