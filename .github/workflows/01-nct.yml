@@ -3,7 +3,7 @@ name: Deploy NCT (Coordinador de Tareas)
 on:
   push:
     paths:
-      - 'tpFinal/Pilar2/tpFinal/Pilar2/coordinador/**'
+      - 'Pilar2/coordinador/**'
       - '.github/workflows/01-nct.yml'
   workflow_dispatch:
 
@@ -19,21 +19,17 @@ jobs:
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
-      - name: 🔐 Escribir clave de GCP desde secrets
-        run: echo "${{ secrets.GCP_SA_KEY }}" > key.json
+          cat Pilar3/infra/secrets/terraform-key.json > key.json
           gcloud auth activate-service-account --key-file=key.json
           gcloud config set project blockchainsd2025 --quiet
-      - name: 🔐 Login Docker manual a gcr.io
-        run: |
-          echo "${{ secrets.GCP_SA_KEY }}" > key.json
-          cat key.json | docker login -u _json_key --password-stdin https://gcr.io
+          gcloud auth configure-docker gcr.io --quiet
 
       - name: 🛠️ Build y Push Docker image NCT
         run: |
           docker build \
             -t gcr.io/blockchainsd2025/nct:latest \
-            -f tpFinal/Pilar2/tpFinal/Pilar2/coordinador/deploy/Dockerfile \
-            tpFinal/Pilar2/coordinador
+            -f Pilar2/coordinador/deploy/Dockerfile \
+            Pilar2/coordinador
           docker push gcr.io/blockchainsd2025/nct:latest
 
       - name: ☸️ Despliegue en GKE del NCT
@@ -41,4 +37,4 @@ jobs:
           gcloud container clusters get-credentials blockchain-cluster \
             --zone=southamerica-east1-a \
             --project=blockchainsd2025
-          kubectl apply -f tpFinal/pilar3-test-k8s/03-nct.yaml
+          kubectl apply -f pilar3-test-k8s/03-nct.yaml

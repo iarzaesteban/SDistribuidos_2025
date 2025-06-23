@@ -2,7 +2,7 @@ name: Deploy Pool
 on:
   push:
     paths:
-      - 'tpFinal/Pilar2/tpFinal/Pilar2/pool/**'
+      - 'Pilar2/pool/**'
       - '.github/workflows/04-pool.yml'
   workflow_dispatch:
 
@@ -17,21 +17,17 @@ jobs:
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
-      - name: 🔐 Escribir clave de GCP desde secrets
-        run: echo "${{ secrets.GCP_SA_KEY }}" > key.json
+          cat Pilar3/infra/secrets/terraform-key.json > key.json
           gcloud auth activate-service-account --key-file=key.json
           gcloud config set project blockchainsd2025 --quiet
-      - name: 🔐 Login Docker manual a gcr.io
-        run: |
-          echo "${{ secrets.GCP_SA_KEY }}" > key.json
-          cat key.json | docker login -u _json_key --password-stdin https://gcr.io
+          gcloud auth configure-docker gcr.io --quiet
 
       - name: 🛠️ Build y Push Docker image Pool
         run: |
           docker build \
             -t gcr.io/blockchainsd2025/pool:latest \
-            -f tpFinal/Pilar2/tpFinal/Pilar2/pool/deploy/Dockerfile \
-            tpFinal/Pilar2/pool
+            -f Pilar2/pool/deploy/Dockerfile \
+            Pilar2/pool
           docker push gcr.io/blockchainsd2025/pool:latest
 
       - name: ☸️ Despliegue en GKE del Pool
@@ -39,4 +35,4 @@ jobs:
           gcloud container clusters get-credentials blockchain-cluster \
             --zone=southamerica-east1-a \
             --project=blockchainsd2025
-          kubectl apply -f tpFinal/pilar3-test-k8s/06-pool.yaml
+          kubectl apply -f pilar3-test-k8s/06-pool.yaml
