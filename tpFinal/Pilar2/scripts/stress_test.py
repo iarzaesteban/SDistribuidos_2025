@@ -8,6 +8,9 @@ from base64 import b64encode
 import random
 from datetime import datetime, timedelta
 import statistics
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path=".env.client")
 
 COORDINADOR_URL = os.getenv("NCT_URL", "http://localhost:8989") + "/new-task"
 #COORDINADOR_URL = "http://localhost:8989/nct"
@@ -23,7 +26,7 @@ def generate_key_pairs(n):
 
 def create_task(source_pair, target_pubkey):
     amount = round(random.uniform(1, 100), 1)
-    ts = (datetime.utcnow() + timedelta(seconds=1)).isoformat() + "+00:00"
+    ts = (datetime.utcnow() + timedelta(seconds=2)).isoformat() + "+00:00"
     message = f"{source_pair[1]}{target_pubkey}{amount}{DESCRIPTION}{ts}"
     message_bytes = message.encode('utf-8')
     signature = source_pair[0].sign(message_bytes).signature

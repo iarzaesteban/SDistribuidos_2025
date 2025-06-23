@@ -41,30 +41,34 @@ export const Blockchain = ({ blocks }: BlockchainProperties) => (
                     </tr>
                 </thead>
                 <tbody>
-                    {blocks.slice(1).map((block) => (
-                        <tr key={block.block_id}>
-                            <td>{block.block_id}</td>
-                            <td>{block.block_hash.slice(0, 15)}</td>
-                            <td>{block.previous_hash.slice(0, 15)}</td>
-                            <td>
-                                {block.miner === "COORDINATOR"
-                                    ? "Coordinador"
-                                    : block.miner.slice(0, 4)}
-                            </td>
-                            <td>{block.nonce}</td>
-                            <td>{block.transaction.tx_id}</td>
-                            <td>
-                                {block.transaction.source === "0000000000"
-                                    ? "0000000000"
-                                    : block.transaction.source.slice(0, 4)}
-                            </td>
-                            <td>{block.transaction.target.slice(0, 4)}</td>
-                            <td>{block.transaction.amount}</td>
-                            <td style={{ maxWidth: '60px', wordBreak: 'break-word' }}>
-                                {block.transaction.description}
-                            </td>
-                        </tr>
-                    ))}
+                    {blocks.slice(1).map((block) => {
+                        const tx = block.transaction;
+
+                        return (
+                            <tr key={block.block_id}>
+                                <td>{block.block_id}</td>
+                                <td>{block.block_hash?.slice(0, 15) ?? 'N/A'}</td>
+                                <td>{block.previous_hash?.slice(0, 15) ?? 'N/A'}</td>
+                                <td>
+                                    {block.miner === "COORDINATOR"
+                                        ? "Coordinador"
+                                        : block.miner?.slice(0, 4) ?? 'N/A'}
+                                </td>
+                                <td>{block.nonce}</td>
+                                <td>{tx?.tx_id ?? 'N/A'}</td>
+                                <td>
+                                    {tx?.source === "0000000000"
+                                        ? "0000000000"
+                                        : tx?.source?.slice(0, 4) ?? 'N/A'}
+                                </td>
+                                <td>{tx?.target?.slice(0, 4) ?? 'N/A'}</td>
+                                <td>{tx?.amount ?? 'N/A'}</td>
+                                <td style={{ maxWidth: '60px', wordBreak: 'break-word' }}>
+                                    {tx?.description ?? 'N/A'}
+                                </td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </table>
         )}

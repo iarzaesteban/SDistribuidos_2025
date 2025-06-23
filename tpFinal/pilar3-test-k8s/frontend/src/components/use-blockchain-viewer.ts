@@ -19,37 +19,27 @@ export const useBlockchainViewer = () => {
         setCreateTask(!createTask);
     }
 
+    const handleStressTask = () => {
+        cleanData();
+        setCreateTask(!createTask);
+    }
+    
     const fetchBlockchain = async () => {
         try {
             cleanData();
-            console.log("🔄 Solicitando blockchain desde:", COORDINADOR_URL + "/blockchain");
             const response = await axios.get(COORDINADOR_URL + '/blockchain');
-            console.log("✅ Respuesta recibida:", response.data);
-
-            const bloques = response.data?.Blockchain;
-
-            if (Array.isArray(bloques)) {
-                console.log("📦 Blockchain válida, cantidad de bloques:", bloques.length);
-                setBlockchain(bloques.slice().reverse());
-                setError("");
-            } else {
-                console.warn("⚠️ La respuesta no es un array:", bloques);
-                setBlockchain([]);
-                setError("La respuesta del servidor no contiene una blockchain válida.");
-            }
+            setBlockchain(response.data.Blockchain);
+            setError("");
         } catch (err) {
-            console.error("❌ Error al obtener la blockchain:", err);
             setError("Error al obtener la blockchain");
+            console.log(err);
         }
     };
-
-
 
     const fetchGenesisBlock = async () => {
         try {
             cleanData();
             const response = await axios.get(COORDINADOR_URL + '/genesis-block');
-            console.log("La respomse es", response)
             setGenesisBlock(response.data);
             setError("");
         } catch (err) {
@@ -74,6 +64,7 @@ export const useBlockchainViewer = () => {
         fetchBlockchain,
         fetchGenesisBlock,
         handleCreateTask,
+        handleStressTask,
         fetchLastChainedBlock,
         blockchain,
         genesisBlock,

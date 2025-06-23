@@ -1,9 +1,11 @@
 import axios from "axios";
 import { COORDINADOR_URL } from "../../constants";
 import { useEffect, useState } from "react";
-import type { TransactionResponse, TransactionStatus, RegisteredWorkersResponse, InProgressTxResponse, EarringQueueResponse } from "../../types/types";
+import type { TransactionResponse, TransactionStatus, RegisteredWorkersResponse, InProgressTxResponse, EarringQueueResponse, GenesisBlockType } from "../../types/types";
 
-export const useBlockchainViewer = () => {
+export const useStatistics = () => {
+    const [genesisBlock, setGenesisBlock] = useState<GenesisBlockType | null>(null);
+    const [currentWindow, setCurrentWindow] = useState<string>("Calculando ventana...");
     const [error, setError] = useState<string>("");
     const [transaction, setTransaction] = useState<TransactionStatus | null>(null);
     const [status, setStatus] = useState<string>("");
@@ -50,6 +52,60 @@ export const useBlockchainViewer = () => {
     }, []);
 
 
+    const fetchGenesisBlock = async () => {
+        try {
+            const response = await axios.get(`${COORDINADOR_URL}/genesis-block`);
+            setGenesisBlock(response.data);
+            setError("");
+        } catch (err) {
+            setError("Error al obtener el bloque GENESIS");
+            console.error(err);
+        }
+    };
+
+    const calculateCurrentWindow = (genesisBlock: GenesisBlockType) => {
+        const cycleTime = genesisBlock.config.window_period_seconds;
+        const now = new Date();
+        const seconds = now.getSeconds();
+        const positionInCycle = seconds % cycleTime;
+
+        const {
+            monitoring_window_start,
+            monitoring_window_end,
+            publish_window_start,
+            publish_window_end,
+            window_period_seconds
+        } = genesisBlock.config;
+
+        if (positionInCycle >= monitoring_window_start && positionInCycle <= monitoring_window_end) {
+            return "Ventana actual: Solicitar tareas";
+        } else if (positionInCycle > monitoring_window_end && positionInCycle < publish_window_start) {
+            return "Ventana actual: Minado";
+        } else if (positionInCycle >= publish_window_start && positionInCycle <= publish_window_end) {
+            return "Ventana actual: Publicación de tareas";
+        } else if (positionInCycle > publish_window_end && positionInCycle <= window_period_seconds) {
+            return "Ventana actual: Validando y encadenando";
+        } else {
+            return "Ventana actual: Moviendo tareas";
+        }
+    };
+
+    useEffect(() => {
+        fetchGenesisBlock();
+    }, []);
+
+    useEffect(() => {
+        if (!genesisBlock) return;
+
+        const interval = setInterval(() => {
+            const window = calculateCurrentWindow(genesisBlock);
+            setCurrentWindow(window);
+        }, 2000);
+
+        return () => clearInterval(interval);
+    }, [genesisBlock]);
+
+
     useEffect(() => {
         const fetchEarringQueueTxs = async () => {
             try {
@@ -89,6 +145,8 @@ export const useBlockchainViewer = () => {
 
     return {
         handleSearchTransaction,
+        genesisBlock,
+        currentWindow,
         transaction,
         status,
         inProgressTxs,

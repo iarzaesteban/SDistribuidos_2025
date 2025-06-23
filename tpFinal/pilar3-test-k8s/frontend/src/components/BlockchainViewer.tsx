@@ -5,6 +5,7 @@ import { useBlockchainViewer } from "./use-blockchain-viewer"
 import CreateTask from "../pages/CreateTask/CreateTask";
 import { LastBlockChained } from "./LastBlockChained/LastBlockChained";
 import { useState } from "react";
+import StressTasks from "../pages/StressTasks/StressTasks";
 
 
 const BlockchainViewer = () => {
@@ -12,6 +13,7 @@ const BlockchainViewer = () => {
     const { fetchBlockchain,
         fetchGenesisBlock,
         handleCreateTask,
+        handleStressTask,
         fetchLastChainedBlock,
         blockchain,
         genesisBlock,
@@ -37,6 +39,9 @@ const BlockchainViewer = () => {
             case "create":
                 handleCreateTask();
                 break;
+            case "stress":
+                handleStressTask();
+                break;
             default:
                 break;
         }
@@ -50,6 +55,8 @@ const BlockchainViewer = () => {
                     <li onClick={() => handleTabChange("genesis")}>Bloque GENESIS</li>
                     <li onClick={() => handleTabChange("last")}>Último Bloque Encadenado</li>
                     <li onClick={() => handleTabChange("create")}>Crear Tarea</li>
+                    <li onClick={() => handleTabChange("stress")}>Stress Tareas</li>
+
                 </ul>
             </aside>
 
@@ -60,6 +67,8 @@ const BlockchainViewer = () => {
                 {activeTab === "genesis" && genesisBlock && <GenesisBlock genesisBlock={genesisBlock} />}
                 {activeTab === "last" && lastChainedBlock && <LastBlockChained lastChainedBlock={lastChainedBlock} />}
                 {activeTab === "create" && <CreateTask />}
+                {activeTab === "stress" && <StressTasks />}
+                
             </main>
         </div>
     );

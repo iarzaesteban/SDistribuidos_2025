@@ -78,6 +78,16 @@ def get_last_block_hash():
 
 
 def generate_genesis_block():
+    genesis_key = "genesis_block_created"
+
+    # SETNX retorna True si seteó, False si ya existía
+    was_set = REDIS_CLIENT.setnx(genesis_key, 1)
+
+    if not was_set:
+        logger.info("El bloque GENESIS ya fue creado por otro pod.")
+        return
+
+    # Solo el pod que hizo el SETNX puede crear el GENESIS
     block_data = {
         "block_id": 0,
         "timestamp": int(time.time()),
@@ -95,18 +105,12 @@ def generate_genesis_block():
         }
     }
 
-    # Calculamos el hash del bloque
     block_hash = hashlib.sha1(json.dumps(block_data, sort_keys=True).encode()).hexdigest()
-    block_data['block_hash'] = block_hash
-    # Verificamos si el bloque GENESIS ya existe en Redis
-    if REDIS_CLIENT.exists(f"block:{block_hash}"):
-        logger.info("El bloque GENESIS ya existe en la cadena.")
-        return
 
-    # Almacenamos bloque GENESIS
     REDIS_CLIENT.set(f"block:{block_hash}", json.dumps(block_data))
     REDIS_CLIENT.set("last_block", block_hash)
     REDIS_CLIENT.set("genesis_block", block_hash)
+
     logger.info("Se encadenó el bloque GENESIS con hash: {}".format(block_hash))
 
 
