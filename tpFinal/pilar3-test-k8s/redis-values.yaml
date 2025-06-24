@@ -1,0 +1,8 @@
+global:
+  redis:
+    password: "thebestpassever"
+replica:
+  replicaCount: 2
+sentinel:
+  enabled: true
+  replicaCount: 3

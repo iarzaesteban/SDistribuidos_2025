@@ -4,8 +4,9 @@ metadata:
   name: system-config
   namespace: pilar3-test
 data:
-  REDIS_HOST: redis-sentinel-headless.pilar3-test.svc.cluster.local
-  REDIS_PORT: '26379'
+  REDIS_PRODUCTION: "true"
+  REDIS_HOST: redis-sentinel
+  REDIS_PORT: "26379"
   REDIS_MASTER_NAME: mymaster
   RABBITMQ_HOST: rabbitmq
   RABBITMQ_PORT: '5672'

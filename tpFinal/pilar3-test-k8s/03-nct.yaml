@@ -16,23 +16,7 @@ spec:
         app: nct
     spec:
       containers:
-      - env:
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              key: REDIS_PASSWORD
-              name: redis-secret
-        - name: RABBITMQ_USER
-          valueFrom:
-            secretKeyRef:
-              key: RABBITMQ_USER
-              name: rabbitmq-secret
-        - name: RABBITMQ_PASS
-          valueFrom:
-            secretKeyRef:
-              key: RABBITMQ_PASS
-              name: rabbitmq-secret
-        envFrom:
+      - envFrom:
         - configMapRef:
             name: blockchain-config
         - secretRef:

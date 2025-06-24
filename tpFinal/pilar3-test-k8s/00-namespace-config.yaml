@@ -12,8 +12,9 @@ metadata:
     app: blockchain
   
 data:
-    REDIS_HOST: redis-sentinel-headless.pilar3-test.svc.cluster.local
+    REDIS_HOST: redis-sentinel-node-0.redis-sentinel-headless.pilar3-test.svc.cluster.local
     REDIS_PORT: "26379"
+    REDIS_MASTER_NAME: mymaster
     RABBITMQ_USER: admin
     RABBITMQ_HOST: rabbitmq
     RABBITMQ_PORT: "5672"
