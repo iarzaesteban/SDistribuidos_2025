@@ -156,10 +156,66 @@ kubectl delete -f tpFinal/pilar3-test-k8s/01-redis.yaml
 
 kubectl describe svc nct -n pilar3-test
 
-
+redis-sentinel-node-0.redis-sentinel-headless.pilar3-test.svc.cluster.loca
 kubectl get pod -o wide -n pilar3-test | grep nct
 
 
 ## ver en vivo a qué pod está llegando el request, podés hacer esto:
 
 kubectl logs -f -l app=nct -n pilar3-test
+
+## Borrar data redis:
+
+
+
+1- ingresar al pod:
+kubectl exec -it redis-sentinel-node-0 -n pilar3-test -c redis -- sh
+
+SENTINEL masters
+2- ver que sea el master;
+INFO replication
+
+VEremos algo como:
+# Replication
+role:master   ->>>>>>> este es el que indica que es el master
+connected_slaves:2
+slave0:ip=redis-sentinel-node-1.redis-sentinel-headless.pilar3-test.svc.cluster.local,port=6379,state=online,offset=7219197,lag=1
+slave1:ip=redis-sentinel-node-2.redis-sentinel-headless.pilar3-test.svc.cluster.local,port=6379,state=online,offset=7219197,lag=1
+master_failover_state:no-failover
+master_replid:ab348ceb25013e2b4
+
+3- Borra de a 1
+EVAL "for _,k in ipairs(redis.call('keys','*')) do redis.call('del',k) end return true" 0
+
+
+helm uninstall redis-sentinel -n pilar3-test
+
+helm install redis-sentinel bitnami/redis -n pilar3-test \
+  --set global.redis.password=thebestpassever \
+  --set architecture=replication \
+  --set sentinel.enabled=true \
+  --set sentinel.quorum=2 \
+  --set sentinel.masterSet=mymaster \
+  --set master.persistence.size=1Gi \
+  --set replica.persistence.size=1Gi
+
+
+
+```bash
+kubectl rollout restart deployment nct -n pilar3-test
+kubectl rollout restart deployment pool -n pilar3-test
+kubectl rollout restart deployment validator -n pilar3-test
+kubectl rollout restart deployment worker-mock-1 -n pilar3-test
+kubectl rollout restart deployment worker-mock-2 -n pilar3-test
+kubectl rollout restart deployment worker-mock-3 -n pilar3-test
+kubectl rollout restart deployment frontend -n pilar3-test
+kubectl rollout restart deployment mover -n pilar3-test
+```
+
+
+
+
+borrar redis :
+helm uninstall redis-sentinel -n pilar3-test
+kubectl delete pvc -n pilar3-test -l app.kubernetes.io/instance=redis-sentinel
+    
