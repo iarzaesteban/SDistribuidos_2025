@@ -110,3 +110,56 @@ kubectl exec -n pilar3-test -it rabbitmq-78d7699586-lv6lk -- rabbitmqctl purge_q
 - Podés monitorear recursos con `kubectl top pods -n pilar3-test` (si tenés `metrics-server` instalado).
 
 ---
+# Conectarme a redis y ver data:
+
+## MASTER
+kubectl exec -it redis-sentinel-node-0 -n pilar3-test -c redis -- sh
+redis-cli -a thebestpassever
+INFO replication
+KEYS *
+
+## SLAVE 1
+
+kubectl exec -it redis-sentinel-node-1 -n pilar3-test -c redis -- sh
+
+redis-cli -a thebestpassever
+INFO replication
+KEYS *
+
+## SLAVE 2
+kubectl exec -it redis-sentinel-node-2 -n pilar3-test -c redis -- sh
+
+redis-cli -a thebestpassever
+INFO replication
+KEYS *
+
+
+ver servicios:
+kubectl get svc -n pilar3-test
+
+ver pods 
+kubectl get pods -n pilar3-test
+
+
+ver var entorno:
+kubectl describe configmap system-config -n pilar3-test
+
+
+kubectl apply -f tpFinal/pilar3-test-k8s/system-config.yaml
+
+
+# mate el deploy de redios con
+
+kubectl delete -f tpFinal/pilar3-test-k8s/01-redis.yaml
+
+# Ver data
+
+kubectl describe svc nct -n pilar3-test
+
+
+kubectl get pod -o wide -n pilar3-test | grep nct
+
+
+## ver en vivo a qué pod está llegando el request, podés hacer esto:
+
+kubectl logs -f -l app=nct -n pilar3-test

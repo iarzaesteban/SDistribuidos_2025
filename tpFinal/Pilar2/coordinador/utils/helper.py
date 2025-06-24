@@ -1,6 +1,7 @@
 import os
 import pika
 from redis.sentinel import Sentinel
+import redis
 import json
 import hashlib
 import time
@@ -26,6 +27,7 @@ REDIS_HOST = os.getenv("REDIS_HOST", "redis-sentinel-headless.pilar3-test.svc.cl
 REDIS_PORT = int(os.getenv("REDIS_PORT", 26379))
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
 REDIS_MASTER_NAME = os.getenv("REDIS_MASTER_NAME", "mymaster")
+REDIS_PRODUCTION = os.getenv("REDIS_PRODUCTION", "False").lower() in ("true", "1", "yes")
 
 # Config RabbitMQ
 RABBITMQ_USER = os.getenv("RABBITMQ_USER")
@@ -37,25 +39,28 @@ IN_PROGRESS_QUEUE = os.getenv("IN_PROGRESS_QUEUE", "in_progress")  # Cola En Cur
 BLOCKCHAIN_KEY = os.getenv("BLOCKCHAIN_KEY", "blockchain") 
 
 #Windows times
-# WINDOW_DURATION = int(os.getenv("WINDOW_DURATION", 15))
 ROUND_PERIOD = int(os.getenv("ROUND_PERIOD", 60))
-# PUBLISH_WINDOW_START = int(os.getenv("PUBLISH_WINDOW_START", 50))
-# PUBLISH_WINDOW_DURATION = int(os.getenv("PUBLISH_WINDOW_DURATION", 10))
 
+if REDIS_PRODUCTION:
+    sentinel = Sentinel(
+        [(REDIS_HOST, REDIS_PORT)],
+        socket_timeout=0.5,
+        sentinel_kwargs={"password": REDIS_PASSWORD},
+    )
 
-sentinel = Sentinel(
-    [(REDIS_HOST, REDIS_PORT)],
-    socket_timeout=0.5,
-    sentinel_kwargs={"password": REDIS_PASSWORD},
-)
-
-REDIS_CLIENT = sentinel.master_for(
-    service_name=REDIS_MASTER_NAME,
-    socket_timeout=0.5,
-    password=REDIS_PASSWORD,
-    decode_responses=True,
-)
-
+    REDIS_CLIENT = sentinel.master_for(
+        service_name=REDIS_MASTER_NAME,
+        socket_timeout=0.5,
+        password=REDIS_PASSWORD,
+        decode_responses=True,
+    )   
+else:
+    REDIS_CLIENT = redis.Redis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        password=REDIS_PASSWORD,
+        decode_responses=True
+    )
 class WorkerRegistration(BaseModel):
     ip: str
     type: str

@@ -1,6 +1,7 @@
 import base64
 import os
 from redis.sentinel import Sentinel
+import redis
 import json
 import socket
 import asyncio
@@ -26,6 +27,7 @@ REDIS_HOST = os.getenv("REDIS_HOST", "redis-sentinel-headless.pilar3-test.svc.cl
 REDIS_PORT = int(os.getenv("REDIS_PORT", 26379))
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
 REDIS_MASTER_NAME = os.getenv("REDIS_MASTER_NAME", "mymaster")
+REDIS_PRODUCTION = os.getenv("REDIS_PRODUCTION", "False").lower() in ("true", "1", "yes")
 
 COORDINATOR_URL = os.getenv("COORDINATOR_URL", "http://nct:8989")
 TOTAL_NONCE_RANGE = int(os.getenv("TOTAL_NONCE_RANGE", 4_000_000))
@@ -39,6 +41,29 @@ NEW_TASKS = f"{COORDINATOR_URL}/new-task"
 POOL_PRIVATE_KEY = None
 POOL_PUBLIC_KEY_HEX = None
 
+
+if REDIS_PRODUCTION:
+    sentinel = Sentinel(
+        [(REDIS_HOST, REDIS_PORT)],
+        socket_timeout=0.5,
+        sentinel_kwargs={"password": REDIS_PASSWORD},
+    )
+
+    REDIS_CLIENT = sentinel.master_for(
+        service_name=REDIS_MASTER_NAME,
+        socket_timeout=0.5,
+        password=REDIS_PASSWORD,
+        decode_responses=True,
+    )   
+else:
+    REDIS_CLIENT = redis.Redis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        password=REDIS_PASSWORD,
+        decode_responses=True
+    )
+
+
 def get_container_ip():
     return socket.gethostbyname(socket.gethostname())
 
@@ -48,18 +73,6 @@ def get_sufix_for_pub_key():
     logger.info(f"[KEYGEN] Sufijo buscado para clave pública: {TARGET_SUFFIX}")
 
     
-sentinel = Sentinel(
-    [(REDIS_HOST, REDIS_PORT)],
-    socket_timeout=0.5,
-    sentinel_kwargs={"password": REDIS_PASSWORD},
-)
-
-REDIS_CLIENT = sentinel.master_for(
-    service_name=REDIS_MASTER_NAME,
-    socket_timeout=0.5,
-    password=REDIS_PASSWORD,
-    decode_responses=True,
-)
 class WorkerRegistration(BaseModel):
     ip: str
     type: str
