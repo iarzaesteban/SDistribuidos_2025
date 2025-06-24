@@ -1,6 +1,6 @@
 import base64
 import os
-import redis
+from redis.sentinel import Sentinel
 import json
 import socket
 import asyncio
@@ -21,11 +21,12 @@ from utils.state import State
 #Config blockchain
 MAX_MINING_TRYS = int(os.getenv("MAX_MINING_TRYS", 3))
 MAX_COINS = int(os.getenv("MAX_COINS", 20_000_000))
-
 # Config Redis
-REDIS_HOST = os.getenv("REDIS_HOST")
-REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+REDIS_HOST = os.getenv("REDIS_HOST", "redis-sentinel-headless.pilar3-test.svc.cluster.local")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 26379))
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+REDIS_MASTER_NAME = os.getenv("REDIS_MASTER_NAME", "mymaster")
+
 COORDINATOR_URL = os.getenv("COORDINATOR_URL", "http://nct:8989")
 TOTAL_NONCE_RANGE = int(os.getenv("TOTAL_NONCE_RANGE", 4_000_000))
 BASE_DIFFICULTY = int(os.getenv("BASE_DIFFICULTY", 4))
@@ -47,12 +48,18 @@ def get_sufix_for_pub_key():
     logger.info(f"[KEYGEN] Sufijo buscado para clave pública: {TARGET_SUFFIX}")
 
     
-REDIS_CLIENT = redis.Redis(
-        host=REDIS_HOST,
-        port=REDIS_PORT,
-        password=REDIS_PASSWORD,
-        decode_responses=True
-    )
+sentinel = Sentinel(
+    [(REDIS_HOST, REDIS_PORT)],
+    socket_timeout=0.5,
+    sentinel_kwargs={"password": REDIS_PASSWORD},
+)
+
+REDIS_CLIENT = sentinel.master_for(
+    service_name=REDIS_MASTER_NAME,
+    socket_timeout=0.5,
+    password=REDIS_PASSWORD,
+    decode_responses=True,
+)
 class WorkerRegistration(BaseModel):
     ip: str
     type: str

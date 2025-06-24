@@ -1,15 +1,16 @@
 import os
 import pika
-import redis
+from redis.sentinel import Sentinel
 import time
 import json
 from enum import Enum
 from utils.logger import logger
 
 # Config Redis
-REDIS_HOST = os.getenv("REDIS_HOST")
-REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+REDIS_HOST = os.getenv("REDIS_HOST", "redis-sentinel-headless.pilar3-test.svc.cluster.local")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 26379))
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+REDIS_MASTER_NAME = os.getenv("REDIS_MASTER_NAME", "mymaster")
 
 # Config RabbitMQ
 RABBITMQ_USER = os.getenv("RABBITMQ_USER")
@@ -21,12 +22,18 @@ IN_PROGRESS_QUEUE = os.getenv("IN_PROGRESS_QUEUE", "in_progress")  # Cola En Cur
 
 CHALLENGE = os.getenv("CHALLENGE", "000")
 
-REDIS_CLIENT = redis.Redis(
-        host=REDIS_HOST,
-        port=REDIS_PORT,
-        password=REDIS_PASSWORD,
-        decode_responses=True
-    )
+sentinel = Sentinel(
+    [(REDIS_HOST, REDIS_PORT)],
+    socket_timeout=0.5,
+    sentinel_kwargs={"password": REDIS_PASSWORD},
+)
+
+REDIS_CLIENT = sentinel.master_for(
+    service_name=REDIS_MASTER_NAME,
+    socket_timeout=0.5,
+    password=REDIS_PASSWORD,
+    decode_responses=True,
+)
 
 class TransactionStatus(str, Enum):
     pendiente = "pendiente"

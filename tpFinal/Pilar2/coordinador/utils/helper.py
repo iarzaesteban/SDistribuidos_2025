@@ -1,6 +1,6 @@
 import os
 import pika
-import redis
+from redis.sentinel import Sentinel
 import json
 import hashlib
 import time
@@ -22,9 +22,10 @@ MAX_MINING_TRYS = int(os.getenv("MAX_MINING_TRYS", 3))
 MAX_COINS = int(os.getenv("MAX_COINS", 20_000_000))
 
 # Config Redis
-REDIS_HOST = os.getenv("REDIS_HOST")
-REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+REDIS_HOST = os.getenv("REDIS_HOST", "redis-sentinel-headless.pilar3-test.svc.cluster.local")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 26379))
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+REDIS_MASTER_NAME = os.getenv("REDIS_MASTER_NAME", "mymaster")
 
 # Config RabbitMQ
 RABBITMQ_USER = os.getenv("RABBITMQ_USER")
@@ -42,12 +43,18 @@ ROUND_PERIOD = int(os.getenv("ROUND_PERIOD", 60))
 # PUBLISH_WINDOW_DURATION = int(os.getenv("PUBLISH_WINDOW_DURATION", 10))
 
 
-REDIS_CLIENT = redis.Redis(
-        host=REDIS_HOST,
-        port=REDIS_PORT,
-        password=REDIS_PASSWORD,
-        decode_responses=True
-    )
+sentinel = Sentinel(
+    [(REDIS_HOST, REDIS_PORT)],
+    socket_timeout=0.5,
+    sentinel_kwargs={"password": REDIS_PASSWORD},
+)
+
+REDIS_CLIENT = sentinel.master_for(
+    service_name=REDIS_MASTER_NAME,
+    socket_timeout=0.5,
+    password=REDIS_PASSWORD,
+    decode_responses=True,
+)
 
 class WorkerRegistration(BaseModel):
     ip: str
