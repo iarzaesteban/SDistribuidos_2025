@@ -1,52 +1,40 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: worker-mock-1
   name: worker-mock-1
   namespace: pilar3-test
+  labels:
+    app: worker-mock
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: worker-mock-1
+      app: worker-mock
+      instance: worker-mock-1
   template:
     metadata:
       labels:
-        app: worker-mock-1
+        app: worker-mock
+        instance: worker-mock-1
     spec:
       containers:
-      - env:
-        - name: WORKER_NAME
-          value: worker-mock-1
-        - name: TARGET_SUFFIX
-          value: '12'
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              key: REDIS_PASSWORD
-              name: redis-secret
-        - name: RABBITMQ_USER
-          valueFrom:
-            secretKeyRef:
-              key: RABBITMQ_USER
-              name: rabbitmq-secret
-        - name: RABBITMQ_PASS
-          valueFrom:
-            secretKeyRef:
-              key: RABBITMQ_PASS
-              name: rabbitmq-secret
-        envFrom:
-        - configMapRef:
-            name: blockchain-config
-        - secretRef:
-            name: blockchain-secrets
-        - configMapRef:
-            name: system-config
-        image: gcr.io/blockchainsd2025/worker-mock-1:latest
-        name: worker-mock
-      nodeSelector:
-        node-type: app
+        - name: worker-mock
+          image: gcr.io/blockchainsd2025/worker-mock:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          envFrom:
+            - secretRef:
+                name: worker-mock-secrets
+            - configMapRef:
+                name: worker-mock-config
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
 ---
 apiVersion: apps/v1
 kind: Deployment

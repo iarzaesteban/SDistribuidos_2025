@@ -1,0 +1,13 @@
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: worker-mock-hpa
+  namespace: pilar3-test
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: worker-mock-1
+  minReplicas: 3
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
